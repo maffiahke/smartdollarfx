@@ -413,8 +413,8 @@ export function TradingPlatform({ forceDemo = false }: TradingPlatformProps) {
           return p;
         }
 
-        // Demo trades always use a 90% win rate (marketing demo behavior)
-        const won = Math.random() * 100 < 90;
+        // Demo trades always use a 75% win rate (marketing demo behavior)
+        const won = Math.random() * 100 < 75;
         const profit = won ? p.payout - p.stake : -p.stake;
 
         // Demo: stake was already deducted at placement.
