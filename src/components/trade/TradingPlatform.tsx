@@ -1075,12 +1075,14 @@ export function TradingPlatform({ forceDemo = false }: TradingPlatformProps) {
 
       {/* ── Mobile (< md): tabbed layout ── */}
       <div className="flex md:hidden flex-1 flex-col overflow-hidden min-h-0">
-        {mobileTab === "trade" && (
-          <>
-            {/* Scrollable content: contract tabs, chart, digit tracker, and
-                order panel (including Match/Differ) all scroll together as
-                one continuous list. Only the bottom nav stays fixed. */}
-            <div className="flex-1 overflow-y-auto overscroll-contain bg-[#0d0f17]" style={{ paddingBottom: "calc(72px + env(safe-area-inset-bottom, 0px))" }}>
+        {/* Trade tab stays mounted (hidden off-tab) so order-panel settings
+            like Runs are preserved when the user hops to the AI/Positions
+            tab and comes back or applies an AI signal. */}
+        <div className={mobileTab === "trade" ? "flex flex-col flex-1 min-h-0" : "hidden"}>
+          {/* Scrollable content: contract tabs, chart, digit tracker, and
+              order panel (including Match/Differ) all scroll together as
+              one continuous list. Only the bottom nav stays fixed. */}
+          <div className="flex-1 overflow-y-auto overscroll-contain bg-[#0d0f17]" style={{ paddingBottom: "calc(72px + env(safe-area-inset-bottom, 0px))" }}>
               {/* Contract tabs */}
               <div className="flex border-b border-white/[0.07] bg-[#0a0c12] overflow-x-auto scrollbar-hide snap-x">
                 {(["Matches/Differs", "Even/Odd", "Over/Under"] as const).map((t) => {
@@ -1182,8 +1184,7 @@ export function TradingPlatform({ forceDemo = false }: TradingPlatformProps) {
                 <OrderPanel {...orderPanelProps} compact />
               </div>
             </div>
-          </>
-        )}
+          </div>
 
         {mobileTab === "positions" && (
           <div className="flex-1 flex flex-col min-h-0 bg-[#0d0f17]" style={{ paddingBottom: "calc(72px + env(safe-area-inset-bottom, 0px))" }}>
