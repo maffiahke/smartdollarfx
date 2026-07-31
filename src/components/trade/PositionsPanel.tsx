@@ -14,28 +14,35 @@ export interface Position {
   isDemo?: boolean;
 }
 
+export type PositionsTab = "open" | "all" | "won" | "lost";
+
 interface PositionsPanelProps {
   positions: Position[];
-  closedTab: "won" | "lost";
-  onTabChange: (tab: "won" | "lost") => void;
+  activeTab: PositionsTab;
+  onTabChange: (tab: PositionsTab) => void;
   timeLeft: Record<string, number>;
   className?: string;
 }
 
 export function PositionsPanel({
   positions,
-  closedTab,
+  activeTab,
   onTabChange,
   timeLeft,
   className = "",
 }: PositionsPanelProps) {
   const openPositions = positions.filter((p) => p.status === "open");
-  const closedPositions = positions.filter((p) => p.status === closedTab);
+  const wonPositions = positions.filter((p) => p.status === "won");
+  const lostPositions = positions.filter((p) => p.status === "lost");
 
-  // Determine which list to show: if any open positions exist show them,
-  // otherwise fall through to the closed tab view.
-  const showingOpen = openPositions.length > 0 || closedPositions.length === 0;
-  const visible = showingOpen ? openPositions : closedPositions;
+  const visible =
+    activeTab === "open"
+      ? openPositions
+      : activeTab === "won"
+        ? wonPositions
+        : activeTab === "lost"
+          ? lostPositions
+          : positions;
 
   const formatTimeLeft = (id: string) => {
     const secs = timeLeft[id];
@@ -49,43 +56,33 @@ export function PositionsPanel({
     <div className={`flex flex-col min-h-0 ${className}`}>
       {/* Tab bar */}
       <div className="flex border-b border-white/[0.07] shrink-0">
-        <button
-          onClick={() => onTabChange("won")}
-          className={`flex-1 py-2.5 sm:py-3 text-xs font-semibold transition min-h-[44px] ${
-            showingOpen || closedTab === "won"
-              ? "text-white border-b-2 border-[#833ab4]"
-              : "text-gray-500"
-          }`}
-        >
-          Open ({openPositions.length})
-        </button>
-        <button
-          onClick={() => onTabChange("won")}
-          className={`flex-1 py-2.5 sm:py-3 text-xs font-semibold transition min-h-[44px] ${
-            !showingOpen && closedTab === "won"
-              ? "text-white border-b-2 border-[#833ab4]"
-              : "text-gray-500"
-          }`}
-        >
-          Won
-        </button>
-        <button
-          onClick={() => onTabChange("lost")}
-          className={`flex-1 py-2.5 sm:py-3 text-xs font-semibold transition min-h-[44px] ${
-            !showingOpen && closedTab === "lost"
-              ? "text-white border-b-2 border-[#833ab4]"
-              : "text-gray-500"
-          }`}
-        >
-          Lost
-        </button>
+        {(
+          [
+            { key: "open", label: "Open", count: openPositions.length },
+            { key: "all", label: "All", count: positions.length },
+            { key: "won", label: "Won", count: wonPositions.length },
+            { key: "lost", label: "Lost", count: lostPositions.length },
+          ] as const
+        ).map((t) => (
+          <button
+            key={t.key}
+            onClick={() => onTabChange(t.key)}
+            className={`flex-1 py-2.5 sm:py-3 text-[10px] xs:text-[11px] sm:text-xs font-semibold transition min-h-[44px] whitespace-nowrap ${
+              activeTab === t.key
+                ? "text-white border-b-2 border-[#833ab4]"
+                : "text-gray-500"
+            }`}
+          >
+            {t.label} ({t.count})
+          </button>
+        ))}
       </div>
 
       {/* Position list */}
       <div className="flex-1 overflow-y-auto overscroll-contain">
         {visible.length === 0 ? (
           <div className="p-6 text-center text-xs text-gray-500">
-            No {showingOpen ? "open" : closedTab} positions
+            No {activeTab} positions
           </div>
         ) : (
           visible.map((p) => (

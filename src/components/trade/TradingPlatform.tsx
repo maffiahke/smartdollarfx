@@ -29,7 +29,7 @@ import {
 } from "lucide-react";
 import { DepositModal } from "../payments/DepositModal";
 import { ASSETS, type Asset } from "@/lib/assets";
-import { PositionsPanel, type Position } from "./PositionsPanel";
+import { PositionsPanel, type Position, type PositionsTab } from "./PositionsPanel";
 import { OrderPanel, type ContractType } from "./OrderPanel";
 
 interface TradingPlatformProps {
@@ -80,7 +80,7 @@ export function TradingPlatform({ forceDemo = false }: TradingPlatformProps) {
   const [mobileTab, setMobileTab] = useState<MobileTab>("trade");
   const [assetDropdown, setAssetDropdown] = useState(false);
   const [depositOpen, setDepositOpen] = useState(false);
-  const [closedTab, setClosedTab] = useState<"won" | "lost">("won");
+  const [positionsTab, setPositionsTab] = useState<PositionsTab>("open");
   const [settledQueue, setSettledQueue] = useState<{ id: string; profit: number }[]>([]);
 
   // Floating toast notifications (executed / closed)
@@ -955,8 +955,8 @@ export function TradingPlatform({ forceDemo = false }: TradingPlatformProps) {
         <aside className="hidden lg:flex w-52 xl:w-64 2xl:w-72 border-r border-white/[0.07] flex-col shrink-0 bg-[#0d0f17]">
           <PositionsPanel
             positions={visiblePositions}
-            closedTab={closedTab}
-            onTabChange={setClosedTab}
+            activeTab={positionsTab}
+            onTabChange={setPositionsTab}
             timeLeft={timeLeft}
             className="h-full"
           />
@@ -1059,8 +1059,8 @@ export function TradingPlatform({ forceDemo = false }: TradingPlatformProps) {
           <div className="lg:hidden border-t border-white/[0.07] h-40 shrink-0 overflow-hidden bg-[#0d0f17]">
             <PositionsPanel
               positions={visiblePositions}
-              closedTab={closedTab}
-              onTabChange={setClosedTab}
+              activeTab={positionsTab}
+              onTabChange={setPositionsTab}
               timeLeft={timeLeft}
               className="h-full"
             />
@@ -1190,8 +1190,8 @@ export function TradingPlatform({ forceDemo = false }: TradingPlatformProps) {
           <div className="flex-1 flex flex-col min-h-0 bg-[#0d0f17]" style={{ paddingBottom: "calc(72px + env(safe-area-inset-bottom, 0px))" }}>
             <PositionsPanel
               positions={visiblePositions}
-              closedTab={closedTab}
-              onTabChange={setClosedTab}
+              activeTab={positionsTab}
+              onTabChange={setPositionsTab}
               timeLeft={timeLeft}
               className="h-full"
             />
