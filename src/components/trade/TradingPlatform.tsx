@@ -674,10 +674,12 @@ export function TradingPlatform({ forceDemo = false }: TradingPlatformProps) {
                 onClick={() => setAccountDropdown((v) => !v)}
                 className="flex items-center gap-1.5 px-2 py-1.5 rounded-2xl bg-[#141822] border border-white/[0.07] hover:border-white/20 transition min-h-[40px] max-w-[110px] xs:max-w-[140px] sm:max-w-[200px]"
               >
-                {/* Flag - circular, smaller */}
-                <span className="w-6 h-6 rounded-full overflow-hidden shrink-0">
-                  <img src="https://img.icons8.com/color/48/usa-circular.png" alt="US" className="w-full h-full object-cover" />
-                </span>
+                {/* Flag - circular, smaller (real account only) */}
+                {accountMode === "real" && (
+                  <span className="w-6 h-6 rounded-full overflow-hidden shrink-0">
+                    <img src="https://img.icons8.com/color/48/usa-circular.png" alt="US" className="w-full h-full object-cover" />
+                  </span>
+                )}
                 <div className="text-left min-w-0">
                   <div className="text-[11px] sm:text-xs font-bold tabular-nums leading-tight truncate">
                     ${displayBalance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -728,9 +730,6 @@ export function TradingPlatform({ forceDemo = false }: TradingPlatformProps) {
                       <div className="text-left flex-1 min-w-0">
                         <div className="text-sm font-semibold text-white">Demo Account</div>
                         <div className="flex items-center gap-1 text-xs text-gray-400">
-                          <span className="w-4 h-4 rounded-full overflow-hidden shrink-0">
-                            <img src="https://img.icons8.com/color/48/usa-circular.png" alt="US" className="w-full h-full object-cover" />
-                          </span>
                           <span className="tabular-nums">
                             ${demoBalance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </span>
