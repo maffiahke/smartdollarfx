@@ -58,10 +58,10 @@ export function PositionsPanel({
       <div className="flex border-b border-white/[0.07] shrink-0">
         {(
           [
-            { key: "open", label: "Open", count: openPositions.length },
-            { key: "all", label: "All", count: positions.length },
-            { key: "won", label: "Won", count: wonPositions.length },
-            { key: "lost", label: "Lost", count: lostPositions.length },
+            { key: "open", label: "Open" },
+            { key: "all", label: "All" },
+            { key: "won", label: "Won" },
+            { key: "lost", label: "Lost" },
           ] as const
         ).map((t) => (
           <button
@@ -73,7 +73,7 @@ export function PositionsPanel({
                 : "text-gray-500"
             }`}
           >
-            {t.label} ({t.count})
+            {t.label}
           </button>
         ))}
       </div>
