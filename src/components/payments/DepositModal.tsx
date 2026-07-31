@@ -54,10 +54,10 @@ export function DepositModal({ open, onClose, onSuccess, userPhone }: DepositMod
       .then((r) => r.json())
       .then((d) => setKesRate(d.usdToKes))
       .catch(() => {});
-    fetch("/api/admin/settings")
+    fetch("/api/payments/deposit")
       .then((r) => r.json())
       .then((d) => {
-        if (d.settings) setLimits({ minDeposit: d.settings.minDeposit, maxDeposit: d.settings.maxDeposit });
+        if (d.limits) setLimits({ minDeposit: d.limits.minDeposit, maxDeposit: d.limits.maxDeposit });
       })
       .catch(() => {});
   }, []);

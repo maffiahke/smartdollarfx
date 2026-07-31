@@ -23,6 +23,21 @@ async function loadLimits() {
   };
 }
 
+export async function GET() {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  try {
+    const limits = await loadLimits();
+    return NextResponse.json({ limits });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Failed to load deposit limits";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
+
 export async function POST(req: Request) {
   const session = await auth();
   if (!session?.user?.id) {
