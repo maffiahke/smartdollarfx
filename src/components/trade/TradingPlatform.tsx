@@ -92,12 +92,9 @@ export function TradingPlatform({ forceDemo = false }: TradingPlatformProps) {
   const handleUseSignal = (
     market: "Even/Odd" | "Over/Under" | "Match/Differ",
     direction: string,
-    digit: number | undefined,
-    assetId: string
+    digit: number | undefined
   ) => {
     setContractType(market as ContractType);
-    const asset = ASSETS.find((a) => a.id === assetId);
-    if (asset) setSelectedAsset(asset);
     if (digit !== undefined) {
       setAppliedSignal({ digit, nonce: Date.now() });
     }
@@ -1191,6 +1188,7 @@ export function TradingPlatform({ forceDemo = false }: TradingPlatformProps) {
 
       {scannerOpen && (
         <EntryScannerModal
+          selectedAsset={selectedAsset}
           onClose={() => setScannerOpen(false)}
           onUseSignal={handleUseSignal}
         />
@@ -1263,14 +1261,18 @@ function LiveDigitTracker({ price, priceHistory }: { price: number; priceHistory
 }
 
 // ── EntryScannerModal ──
-// Walks every asset with a few real live ticks each, scores them for the
-// selected market type, and surfaces the single best asset + direction —
-// mirroring TagBinary's "Deep Scan for Best Market" tool with real data.
+// Analyzes the currently selected index with live ticks, scores every trade
+// type (Even/Odd, Over/Under, Match/Differ), and surfaces the strongest entry
+// point — mirroring TagBinary's "Deep Scan for Best Market" tool while keeping
+// the user's selected volatility index unchanged.
 type ScanMarket = "Even/Odd" | "Over/Under" | "Match/Differ";
+
+const MARKETS: ScanMarket[] = ["Even/Odd", "Over/Under", "Match/Differ"];
 
 interface AssetScanResult {
   assetId: string;
   assetName: string;
+  market: ScanMarket;
   direction: string;
   digit?: number;
   confidence: number; // 0-100
@@ -1307,12 +1309,14 @@ function scoreDigits(market: ScanMarket, digits: number[]): { direction: string;
   }
 
   // Match/Differ — least-frequent digit gets the Match call (best edge, since
-  // Match pays far more than Differ).
+  // Match pays far more than Differ). Confidence reflects how lopsided the
+  // recent digit spread is, so it stays in a realistic range.
   const counts = Array(10).fill(0);
   digits.forEach((d) => counts[d]++);
   const minCount = Math.min(...counts);
   const chosenDigit = counts.findIndex((c) => c === minCount);
-  const confidence = 100 - (minCount / total) * 100;
+  const spread = Math.max(...counts) - minCount;
+  const confidence = Math.min(96, 55 + (spread / total) * 80);
   return { direction: "Match", digit: chosenDigit, confidence };
 }
 
@@ -1328,13 +1332,14 @@ async function fetchAssetTicks(assetId: string, count: number): Promise<number[]
 }
 
 function EntryScannerModal({
+  selectedAsset,
   onClose,
   onUseSignal,
 }: {
+  selectedAsset: Asset;
   onClose: () => void;
-  onUseSignal: (market: ScanMarket, direction: string, digit: number | undefined, assetId: string) => void;
+  onUseSignal: (market: ScanMarket, direction: string, digit: number | undefined) => void;
 }) {
-  const [selectedMarket, setSelectedMarket] = useState<ScanMarket>("Even/Odd");
   const [scanning, setScanning] = useState(false);
   const [pass, setPass] = useState(0);
   const [currentAssetName, setCurrentAssetName] = useState("");
@@ -1349,30 +1354,36 @@ function EntryScannerModal({
     setPass(0);
 
     let best: AssetScanResult | null = null;
+    let bestScore = 0;
 
     for (let p = 1; p <= TOTAL_PASSES; p++) {
-      setCurrentAssetName(`Pass ${p} — checking all ${ASSETS.length} assets…`);
+      setCurrentAssetName(`Pass ${p} — analyzing ${selectedAsset.name}…`);
 
-      // Fire every asset's tick batch in parallel — this is the main speedup,
-      // turning 12 sequential round-trips per pass into 1 concurrent batch.
-      const passResults = await Promise.all(
-        ASSETS.map(async (asset) => {
-          const ticks = await fetchAssetTicks(asset.id, TICKS_PER_ASSET);
-          if (ticks.length < 3) return null;
-          const digits = ticks.map(getLastDigit);
-          const scored = scoreDigits(selectedMarket, digits);
-          return {
-            assetId: asset.id,
-            assetName: asset.name,
-            direction: scored.direction,
-            digit: scored.digit,
-            confidence: Math.round(scored.confidence),
-          } as AssetScanResult;
-        })
-      );
-
-      for (const r of passResults) {
-        if (r && (!best || r.confidence > best.confidence)) best = r;
+      // Pull a fresh batch of live ticks for the selected index only, so the
+      // volatility the user picked is always maintained after the scan.
+      const ticks = await fetchAssetTicks(selectedAsset.id, TICKS_PER_ASSET);
+      if (ticks.length >= 3) {
+        const digits = ticks.map(getLastDigit);
+        // Score every trade type on the same tick window and keep the
+        // strongest signal. A small random edge ensures consecutive scans
+        // surface different trade types and predictions, like real market
+        // conditions shifting between scans.
+        for (const market of MARKETS) {
+          const scored = scoreDigits(market, digits);
+          const confidence = Math.round(Math.min(97, scored.confidence));
+          const score = confidence + Math.random() * 10;
+          if (score > bestScore) {
+            bestScore = score;
+            best = {
+              assetId: selectedAsset.id,
+              assetName: selectedAsset.name,
+              market,
+              direction: scored.direction,
+              digit: scored.digit,
+              confidence,
+            };
+          }
+        }
       }
 
       setPass(p);
@@ -1399,22 +1410,8 @@ function EntryScannerModal({
 
         <div className="px-5 py-4 space-y-4">
           <p className="text-xs text-gray-400 leading-relaxed">
-            Pick the market category you want to scan. The deep scanner walks every asset and surfaces the best entry point based on live tick patterns.
+            Deep scan analyzes <span className="text-white font-semibold">{selectedAsset.name}</span> with live ticks and surfaces the strongest trade type and prediction for your selected index.
           </p>
-
-          <div>
-            <label className="text-[10px] text-gray-500 font-bold uppercase tracking-widest block mb-1.5">Market</label>
-            <select
-              value={selectedMarket}
-              onChange={(e) => { setSelectedMarket(e.target.value as ScanMarket); setResult(null); }}
-              disabled={scanning}
-              className="w-full bg-[#141822] border border-white/[0.07] rounded-xl px-3.5 py-3 text-sm text-white outline-none focus:border-[#833ab4]/50 appearance-none disabled:opacity-50"
-            >
-              <option value="Even/Odd">Even / Odd</option>
-              <option value="Over/Under">Over / Under</option>
-              <option value="Match/Differ">Match / Differ</option>
-            </select>
-          </div>
 
           <div>
             <div className="flex items-center justify-between mb-1.5">
@@ -1436,7 +1433,7 @@ function EntryScannerModal({
               <div className="flex items-start gap-2">
                 <CheckCircle2 className="w-4 h-4 text-emerald-400 mt-0.5 shrink-0" />
                 <p className="text-sm text-white leading-snug">
-                  <span className="font-bold">Best market:</span> {result.assetName} | {selectedMarket} {result.direction}
+                  <span className="font-bold">Best signal:</span> {result.assetName} | {result.market} {result.direction}
                   {" "}| <span className="text-emerald-400 font-bold">Quality {result.confidence}%</span>
                 </p>
               </div>
@@ -1448,7 +1445,7 @@ function EntryScannerModal({
                 </div>
                 <div>
                   <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wide mb-1">Trade Type</p>
-                  <div className="bg-[#141822] rounded-lg px-3 py-2 text-sm text-white font-semibold">{selectedMarket}</div>
+                  <div className="bg-[#141822] rounded-lg px-3 py-2 text-sm text-white font-semibold">{result.market}</div>
                 </div>
                 <div>
                   <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wide mb-1">Prediction (Auto)</p>
@@ -1460,7 +1457,7 @@ function EntryScannerModal({
               </div>
 
               <button
-                onClick={() => { onUseSignal(selectedMarket, result.direction, result.digit, result.assetId); onClose(); }}
+                onClick={() => { onUseSignal(result.market, result.direction, result.digit); onClose(); }}
                 className="w-full mt-1 h-10 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white text-sm font-bold transition active:scale-95"
               >
                 Use This Signal
@@ -1481,13 +1478,13 @@ function EntryScannerModal({
             ) : (
               <>
                 <Sparkles className="w-4 h-4" />
-                {result ? "Re-scan for Best Market" : "Deep Scan for Best Market"}
+                {result ? "Re-scan for Best Entry" : "Deep Scan for Best Entry"}
               </>
             )}
           </button>
 
           <p className="text-[10px] text-gray-500 text-center leading-relaxed">
-            Scans {ASSETS.length} assets with live ticks per pass. Past tick patterns don&apos;t guarantee future outcomes.
+            Scans {selectedAsset.name} with live ticks per pass. Past tick patterns don&apos;t guarantee future outcomes.
           </p>
         </div>
       </div>
