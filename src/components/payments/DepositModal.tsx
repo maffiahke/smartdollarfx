@@ -359,7 +359,7 @@ export function DepositModal({ open, onClose, onSuccess, userPhone }: DepositMod
               className="w-full px-4 py-3 rounded-xl bg-[#13161e] border border-white/[0.07] text-white text-sm focus:outline-none focus:border-[#833ab4]/50"
             />
             <div className="flex gap-1.5 mt-2">
-              {[10, 25, 50, 100, 200].map((v) => (
+              {[5, 10, 25, 50, 100].map((v) => (
                 <button
                   key={v}
                   onClick={() => setAmount(v)}
