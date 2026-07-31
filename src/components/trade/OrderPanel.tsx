@@ -5,7 +5,8 @@ import { Minus, Plus, Square, Zap, XCircle, CheckCircle2 } from "lucide-react";
 import type { Asset } from "@/lib/assets";
 
 const CONTRACT_TYPES = ["Even/Odd", "Over/Under", "Match/Differ"] as const;
-const STAKE_PRESETS = [1, 5, 10, 25, 50, 100];
+const STAKE_PRESETS = [5, 10, 25, 50, 100];
+const MIN_STAKE = 5;
 
 type ContractType = (typeof CONTRACT_TYPES)[number];
 
@@ -401,14 +402,14 @@ export function OrderPanel({
   };
 
   const adjustStake = (delta: number) => {
-    // Flat $1 steps — no more jumping 1 -> 5 -> 10 -> 25 via the preset tiers.
+    // Flat $1 steps — no more jumping 5 -> 10 -> 25 via the preset tiers.
     const next = Math.round((stake + delta) * 100) / 100; // avoid float drift
-    onStakeChange(Math.max(1, next));
+    onStakeChange(Math.max(MIN_STAKE, next));
   };
 
   const commitStake = () => {
     const n = parseFloat(rawStake);
-    if (!isNaN(n) && n >= 1) onStakeChange(Math.round(n * 100) / 100);
+    if (!isNaN(n) && n >= MIN_STAKE) onStakeChange(Math.round(n * 100) / 100);
     setEditingStake(false);
   };
 
