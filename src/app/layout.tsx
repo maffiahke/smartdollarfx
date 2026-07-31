@@ -5,21 +5,6 @@ import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"] });
 
-<!-- Brevo Conversations {literal} -->
-<script>
-    (function(d, w, c) {
-        w.BrevoConversationsID = '6a6cf0e761b4158f8b09143d';
-        w[c] = w[c] || function() {
-            (w[c].q = w[c].q || []).push(arguments);
-        };
-        var s = d.createElement('script');
-        s.async = true;
-        s.src = 'https://conversations-widget.brevo.com/brevo-conversations.js';
-        if (d.head) d.head.appendChild(s);
-    })(document, window, 'BrevoConversations');
-</script>
-<!-- /Brevo Conversations {/literal} -->
-
 export const metadata: Metadata = {
   title: "SmartDollarFX - Binary Trading Platform",
   description: "Trade binary options on synthetic indices",
