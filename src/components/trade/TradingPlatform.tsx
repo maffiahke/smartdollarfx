@@ -802,10 +802,10 @@ export function TradingPlatform({ forceDemo = false }: TradingPlatformProps) {
                   </div>
                   <div className="text-left min-w-0">
                     <p className="text-sm font-bold text-white truncate">
-                      {profile?.phone || profile?.name || "Set up your profile"}
+                      {profile?.name || (profile?.phone || session?.user?.email ? "****" : "Set up your profile")}
                     </p>
                     <p className="text-xs text-gray-500 truncate">
-                      {profile?.email ?? session?.user?.email ?? ""}
+                      {profile?.email || session?.user?.email ? "****" : ""}
                     </p>
                   </div>
                 </button>
