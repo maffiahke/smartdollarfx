@@ -39,21 +39,23 @@ function AdjustField({
   color,
   enabled,
   onToggle,
+  displayPrefix = "$",
 }: {
   label: string;
   value: number;
   onChange: (v: number) => void;
-  color: "text-emerald-400" | "text-red-400";
+  color: "text-emerald-400" | "text-red-400" | "text-purple-400";
   enabled?: boolean;
   onToggle?: () => void;
+  displayPrefix?: string;
 }) {
   const [editing, setEditing] = useState(false);
   const [raw, setRaw] = useState("");
 
   const step = value >= 1000 ? 100 : value >= 100 ? 10 : 1;
   const adjust = (delta: number) => onChange(Math.max(1, value + delta * step));
-  const dotColor = color === "text-emerald-400" ? "bg-emerald-500" : "bg-red-500";
-  const borderColor = color === "text-emerald-400" ? "border-emerald-500" : "border-red-500";
+  const dotColor = color === "text-emerald-400" ? "bg-emerald-500" : color === "text-red-400" ? "bg-red-500" : "bg-purple-500";
+  const borderColor = color === "text-emerald-400" ? "border-emerald-500" : color === "text-red-400" ? "border-red-500" : "border-purple-500";
 
   const commit = () => {
     const n = parseFloat(raw);
@@ -61,7 +63,7 @@ function AdjustField({
     setEditing(false);
   };
 
-  const labelColor = color === "text-emerald-400" ? "text-emerald-500/80" : "text-red-500/80";
+  const labelColor = color === "text-emerald-400" ? "text-emerald-500/80" : color === "text-red-400" ? "text-red-500/80" : "text-purple-500/80";
 
   return (
     <div className="bg-[#141822] rounded-xl p-1.5 border border-white/[0.06]">
@@ -92,7 +94,7 @@ function AdjustField({
           onClick={() => { setRaw(String(value)); setEditing(true); }}
           className={`w-full text-left ${color} text-sm font-bold tabular-nums mb-1 ${enabled === false ? "opacity-30" : ""}`}
         >
-          ${value.toLocaleString()}
+          {displayPrefix}{value.toLocaleString()}
         </button>
       )}
       <div className="flex gap-1">
@@ -135,6 +137,23 @@ export function OrderPanel({
   const [targetEnabled, setTargetEnabled] = useState(true);
   const [stopEnabled, setStopEnabled] = useState(true);
 
+  // Auto-mode runs: how many consecutive trades one auto session places.
+  const [runs, setRuns] = useState(1);
+  const runsRef = useRef(runs);
+  useEffect(() => {
+    runsRef.current = runs;
+  }, [runs]);
+  // How many of the requested runs have completed (display + loop logic).
+  const [runsCompleted, setRunsCompleted] = useState(0);
+  // Total runs the current auto session is executing (display only).
+  const [runsTotal, setRunsTotal] = useState(1);
+  // Mirrors the `balance` prop synchronously so the runs loop can re-check
+  // affordability between trades without reading a stale closure value.
+  const balanceRef = useRef(balance);
+  useEffect(() => {
+    balanceRef.current = balance;
+  }, [balance]);
+
   // Session tracking
   const [sessionPnl, setSessionPnl] = useState(0);
   const [sessionTrades, setSessionTrades] = useState(0);
@@ -142,13 +161,13 @@ export function OrderPanel({
   const processedIdsRef = useRef<Set<string>>(new Set());
   const [sessionResult, setSessionResult] = useState<"target" | "stop" | null>(null);
 
-  // Auto-mode state. There is intentionally no loop and no "stop requested"
-  // flag here: auto mode places exactly one trade per click and reports its
-  // result, so there's nothing ongoing to ask to stop mid-flight.
+  // Auto-mode state. There is intentionally no background loop task here:
+  // auto mode places a run of `runs` consecutive trades (see
+  // runSingleAutoTrade), each awaiting settlement before the next.
   const [autoRunning, setAutoRunning] = useState(false);
   const [autoDirection, setAutoDirection] = useState<"up" | "down" | null>(null);
   const [autoMeta, setAutoMeta] = useState<{ digit?: number; contractType?: string; digitDirection?: string } | undefined>();
-  const [liveTrades, setLiveTrades] = useState(0); // 1 while the single auto trade is pending, else 0
+  const [liveTrades, setLiveTrades] = useState(0); // 1 while the current auto trade is pending, else 0
   // Mirrors autoRunning synchronously. `autoRunning` state only updates on
   // the next render, so a rapid double-click/tap on the trade button can
   // pass `if (autoRunningRef.current) return` twice before React ever
@@ -182,11 +201,11 @@ export function OrderPanel({
   }, [sessionPnl]);
 
   // Applies settled trades to session P&L and reports auto-mode result.
-  // Still processes EVERY new entry in settledQueue defensively (not just
-  // the latest) in case more than one ever lands in a single update — but
-  // with auto mode placing exactly one trade at a time, this is normally
-  // exactly one entry, so target/stop reflects that single trade's own
-  // profit/loss rather than an accumulated total across multiple trades.
+  // Processes EVERY new entry in settledQueue defensively (not just the
+  // latest) in case more than one ever lands in a single update — each
+  // settlement is accounted for individually in the running session P&L,
+  // and target/stop are checked against that accumulated total so a
+  // multi-run auto session ends when the session hits the goal.
   useEffect(() => {
     if (!settledQueue || settledQueue.length === 0) return;
     const unprocessed = settledQueue.filter((s) => !processedIdsRef.current.has(s.id));
@@ -208,13 +227,12 @@ export function OrderPanel({
     for (const settlement of unprocessed) {
       runningPnl += settlement.profit;
       if (tradeMode === "auto" && !hitTarget && !hitStop) {
-        // Target/stop are evaluated against THIS trade's own profit, not the
-        // accumulated session total — one trade, one result. sessionPnl below
-        // still accumulates across trades purely for the display ("Session
-        // P&L") and is reset by resetSession(); it no longer feeds the
-        // target/stop decision.
-        if (targetEnabled && settlement.profit >= targetProfit) hitTarget = true;
-        else if (stopEnabled && settlement.profit <= -stopLoss) hitStop = true;
+        // Target/stop are evaluated against the accumulated session P&L
+        // (runningPnl), so they can end a multi-run auto session once the
+        // session as a whole reaches the goal. With runs = 1 this is exactly
+        // the same as evaluating the single trade's own profit/loss.
+        if (targetEnabled && runningPnl >= targetProfit) hitTarget = true;
+        else if (stopEnabled && runningPnl <= -stopLoss) hitStop = true;
       }
     }
     runningPnl = +(runningPnl.toFixed(2));
@@ -262,20 +280,23 @@ export function OrderPanel({
     });
   }, []);
 
-  // Auto-mode engine: places exactly ONE trade, waits for it to settle, then
-  // stops. Auto mode no longer means "keep trading until target/stop" — it
-  // means "place this one trade and tell me clearly whether it hit target,
-  // hit stop, or neither." There is intentionally no loop here: one click
-  // can never result in more than one trade being placed.
+  // Auto-mode engine: places up to `runs` consecutive trades, each one only
+  // after the previous one settles. The loop stops early if the user presses
+  // STOP (handleStop flips autoRunningRef), if target profit / stop loss is
+  // hit (the settlement effect flips autoRunningRef and sets sessionResult),
+  // or if balance runs out before the next run.
   const runSingleAutoTrade = useCallback(async (
     direction: "up" | "down",
     meta: { digit?: number; contractType?: string; digitDirection?: string } | undefined,
     currentBalance: number,
     currentStake: number,
   ) => {
+    const totalRuns = Math.max(1, Math.floor(runsRef.current));
     autoRunningRef.current = true;
     setAutoRunning(true);
     setLiveTrades(0);
+    setRunsCompleted(0);
+    setRunsTotal(totalRuns);
 
     if (currentStake > currentBalance) {
       autoRunningRef.current = false;
@@ -283,20 +304,28 @@ export function OrderPanel({
       return;
     }
 
-    const ok = await onPlaceTrade(direction, meta);
-    if (!ok) {
-      // Failed to place (balance check failed server-side, auth issue, etc.)
-      autoRunningRef.current = false;
-      setAutoRunning(false);
-      return;
+    for (let i = 0; i < totalRuns; i++) {
+      // STOP pressed, or target/stop was hit by a previous settlement.
+      if (!autoRunningRef.current) break;
+
+      // Balance may have dropped below stake after a loss — bail gracefully.
+      if (currentStake > balanceRef.current) break;
+
+      const ok = await onPlaceTrade(direction, meta);
+      if (!ok) {
+        // Failed to place (balance check failed server-side, auth issue, etc.)
+        break;
+      }
+
+      setLiveTrades(1);
+      setRunsCompleted(i + 1);
+
+      // Wait for this exact trade to settle (price tick resolves it) before
+      // starting the next run — the settlement effect above applies this
+      // trade's own profit/loss to sessionPnl and checks target/stop there.
+      await waitForNextSettlement();
+      setLiveTrades(0);
     }
-
-    setLiveTrades(1);
-
-    // Wait for this exact trade to settle (price tick resolves it) before
-    // reporting target/stop — the settlement effect above applies this
-    // trade's own profit/loss to sessionPnl and checks it there.
-    await waitForNextSettlement();
 
     autoRunningRef.current = false;
     setAutoRunning(false);
@@ -465,9 +494,10 @@ export function OrderPanel({
       {/* ── Risk controls (Auto mode only) ── */}
       {tradeMode === "auto" && (
         <div className="px-2.5 pt-1.5 pb-1.5 border-b border-white/[0.06]">
-          <div className="grid grid-cols-2 gap-1.5">
+          <div className="grid grid-cols-3 gap-1.5">
             <AdjustField label="Target profit" value={targetProfit} onChange={setTargetProfit} color="text-emerald-400" enabled={targetEnabled} onToggle={() => setTargetEnabled((v) => !v)} />
             <AdjustField label="Stop loss" value={stopLoss} onChange={setStopLoss} color="text-red-400" enabled={stopEnabled} onToggle={() => setStopEnabled((v) => !v)} />
+            <AdjustField label="Runs" value={runs} onChange={(v) => setRuns(Math.max(1, Math.round(v)))} color="text-purple-400" displayPrefix="" />
           </div>
         </div>
       )}
@@ -478,7 +508,7 @@ export function OrderPanel({
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
             <span className="text-amber-400 text-xs font-bold uppercase tracking-wider">
-              Live {liveTrades}T
+              Live {liveTrades}T · Run {runsCompleted}/{runsTotal}
             </span>
           </div>
           <span className={`text-xs font-bold tabular-nums ${sessionPnl >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
