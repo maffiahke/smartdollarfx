@@ -190,13 +190,6 @@ export function TradingPlatform({ forceDemo = false }: TradingPlatformProps) {
               ...q,
               ...newlySettled.map((pos: Position) => ({ id: pos.id, profit: pos.profit ?? 0 })),
             ]);
-            newlySettled.forEach((pos: Position) => {
-              pushToast({
-                kind: (pos.profit ?? 0) >= 0 ? "closed-profit" : "closed-loss",
-                asset: pos.asset,
-                amount: pos.profit ?? 0,
-              });
-            });
           }
           return fetched;
         });
@@ -215,7 +208,7 @@ export function TradingPlatform({ forceDemo = false }: TradingPlatformProps) {
     } finally {
       syncInFlightRef.current = false;
     }
-  }, [pushToast]);
+  }, []);
 
   useEffect(() => {
     const tickPrice = () => {
@@ -451,15 +444,10 @@ export function TradingPlatform({ forceDemo = false }: TradingPlatformProps) {
         setDemoBalance((b) => +(b + (won ? p.payout : 0)).toFixed(2));
 
         setSettledQueue((q) => [...q, { id: p.id, profit }]);
-        pushToast({
-          kind: profit >= 0 ? "closed-profit" : "closed-loss",
-          asset: p.asset,
-          amount: profit,
-        });
         return { ...p, status: won ? "won" : "lost", profit };
       })
     );
-  }, [price, isAuthenticated, syncFromApi, pushToast]);
+  }, [price, isAuthenticated, syncFromApi]);
 
   // Timer countdown
   useEffect(() => {
