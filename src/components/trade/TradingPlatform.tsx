@@ -25,7 +25,6 @@ import {
   TrendingUp,
   Wallet,
   X,
-  XCircle,
 } from "lucide-react";
 import { DepositModal } from "../payments/DepositModal";
 import { ASSETS, type Asset } from "@/lib/assets";
@@ -83,23 +82,6 @@ export function TradingPlatform({ forceDemo = false }: TradingPlatformProps) {
   const [positionsTab, setPositionsTab] = useState<PositionsTab>("open");
   const [settledQueue, setSettledQueue] = useState<{ id: string; profit: number }[]>([]);
 
-  // Floating toast notifications (executed / closed)
-  type Toast = {
-    id: string;
-    kind: "executed" | "closed-profit" | "closed-loss";
-    asset: string;
-    direction?: "up" | "down";
-    amount: number;
-    price?: number;
-  };
-  const [toasts, setToasts] = useState<Toast[]>([]);
-  const pushToast = useCallback((t: Omit<Toast, "id">) => {
-    const id = crypto.randomUUID();
-    setToasts((prev) => [...prev, { ...t, id }]);
-    setTimeout(() => {
-      setToasts((prev) => prev.filter((x) => x.id !== id));
-    }, 3200);
-  }, []);
   const [accountMode, setAccountMode] = useState<"real" | "demo">("real");
   const [accountDropdown, setAccountDropdown] = useState(false);
   const [navMenuOpen, setNavMenuOpen] = useState(false);
@@ -519,14 +501,6 @@ export function TradingPlatform({ forceDemo = false }: TradingPlatformProps) {
       isDemo,
     };
 
-    pushToast({
-      kind: "executed",
-      asset: selectedAsset.name,
-      direction,
-      amount: stake,
-      price,
-    });
-
     if (isDemo) {
       // Demo trades always run locally, even when signed in
       setPositions((prev) => [...prev, newPosition]);
@@ -596,43 +570,6 @@ export function TradingPlatform({ forceDemo = false }: TradingPlatformProps) {
 
   return (
     <div className="h-[100dvh] bg-[#0a0c12] text-white flex flex-col overflow-hidden">
-
-      {/* ── Toast notifications ── */}
-      <div className="fixed top-3 left-1/2 -translate-x-1/2 z-[100] w-[92%] max-w-sm flex flex-col gap-2 pointer-events-none">
-        {toasts.map((t) => (
-          <div
-            key={t.id}
-            className="bg-[#0d0f17]/95 backdrop-blur-md border border-white/10 rounded-2xl px-4 py-3 shadow-2xl animate-[slideDown_0.25s_ease-out] flex items-start gap-3"
-          >
-            <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${
-              t.kind === "executed" ? "bg-[#833ab4]/15" : t.kind === "closed-profit" ? "bg-emerald-500/15" : "bg-rose-500/15"
-            }`}>
-              {t.kind === "executed" ? (
-                <TrendingUp className="w-4 h-4 text-[#833ab4]" />
-              ) : t.kind === "closed-profit" ? (
-                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-              ) : (
-                <XCircle className="w-4 h-4 text-rose-400" />
-              )}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-[9px] text-gray-500 font-bold uppercase tracking-wider mb-0.5">
-                {t.kind === "executed" ? "Market Order Executed" : t.kind === "closed-profit" ? "Trade Closed — Profit" : "Trade Closed — Loss"}
-              </p>
-              <p className="text-sm font-bold text-white truncate">{t.asset}</p>
-              {t.kind === "executed" ? (
-                <p className="text-xs font-semibold text-[#60a5fa] mt-0.5">
-                  {t.direction === "up" ? "Buy" : "Sell"} ${t.amount.toFixed(2)} at {t.price?.toFixed(2)}
-                </p>
-              ) : (
-                <p className={`text-xs font-bold mt-0.5 ${t.amount >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
-                  {t.amount >= 0 ? "+" : ""}${t.amount.toFixed(2)}
-                </p>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
 
       {/* ── Header ── */}
       <header
