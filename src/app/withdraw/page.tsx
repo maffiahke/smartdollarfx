@@ -17,8 +17,8 @@ interface WithdrawSuccess {
 // "0712345678" -> "071****678" (matches the pattern on the success screen).
 function maskPhone(phone: string): string {
   const digits = phone.replace(/\D/g, "");
-  if (digits.length < 7) return phone;
-  return `${digits.slice(0, 3)}****${digits.slice(-3)}`;
+  if (digits.length < 8) return phone;
+  return `${digits.slice(0, 5)}****${digits.slice(-3)}`;
 }
 
 export default function WithdrawPage() {
@@ -163,8 +163,19 @@ export default function WithdrawPage() {
                 M-Pesa Phone Number
               </label>
               <input
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
+                type="text"
+                value={phone.length > 5 ? phone.slice(0, 5) + "*".repeat(phone.length - 5) : phone}
+                onChange={(e) => {
+                  const raw = e.target.value;
+                  // If user is deleting/typing around the masked part, handle gently
+                  // Simple approach: if new length is shorter, slice; if longer, append new char
+                  if (raw.length < phone.length) {
+                    setPhone(phone.slice(0, raw.length));
+                  } else if (raw.length > phone.length) {
+                    const added = raw.slice(-1);
+                    setPhone(phone + added);
+                  }
+                }}
                 placeholder="07XX XXX XXX"
                 className="w-full bg-[#141822] border border-white/[0.08] rounded-xl px-3.5 py-3 text-sm text-white outline-none focus:border-rose-500/50"
               />
@@ -185,6 +196,7 @@ export default function WithdrawPage() {
                 value={walletAddress}
                 onChange={(e) => setWalletAddress(e.target.value)}
                 placeholder="Account number / IBAN"
+                type="password"
                 className="w-full bg-[#141822] border border-white/[0.08] rounded-xl px-3.5 py-3 text-sm text-white outline-none focus:border-rose-500/50"
               />
             </div>

@@ -623,14 +623,14 @@ export function TradingPlatform({ forceDemo = false }: TradingPlatformProps) {
                       onClick={() => { setAccountMode("real"); setAccountDropdown(false); }}
                       className="w-full flex items-center gap-3 px-4 py-4 hover:bg-white/5 transition"
                     >
-                      <div className="w-10 h-10 rounded-full bg-emerald-500 flex items-center justify-center text-white font-bold text-sm shrink-0">
-                        R
+                      <div className="w-10 h-10 rounded-full overflow-hidden shrink-0 bg-emerald-500 flex items-center justify-center">
+                        <img src="https://img.icons8.com/color/48/usa-circular.png" alt="US" className="w-full h-full object-cover" />
                       </div>
                       <div className="text-left flex-1 min-w-0">
                         <div className="text-sm font-semibold text-white">Real Account</div>
                         <div className="flex items-center gap-1 text-xs text-gray-400">
-                          <span className="w-4 h-4 rounded-full overflow-hidden shrink-0">
-                            <img src="https://img.icons8.com/color/48/usa-circular.png" alt="US" className="w-full h-full object-cover" />
+                          <span className="tabular-nums">
+                            ${balance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </span>
                         </div>
                       </div>

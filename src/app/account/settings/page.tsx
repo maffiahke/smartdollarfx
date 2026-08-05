@@ -134,8 +134,17 @@ export default function AccountSettingsPage() {
               <Phone className="w-3 h-3" /> Phone number
             </label>
             <input
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
+              type="text"
+              value={phone.length > 5 ? phone.slice(0, 5) + "*".repeat(phone.length - 5) : phone}
+              onChange={(e) => {
+                const raw = e.target.value;
+                if (raw.length < phone.length) {
+                  setPhone(phone.slice(0, raw.length));
+                } else if (raw.length > phone.length) {
+                  const added = raw.slice(-1);
+                  setPhone(phone + added);
+                }
+              }}
               placeholder="07XX XXX XXX"
               className="w-full bg-[#141822] border border-white/[0.08] rounded-xl px-3.5 py-2.5 text-sm text-white outline-none focus:border-[#833ab4]/50"
             />
