@@ -386,9 +386,17 @@ export function DepositModal({ open, onClose, onSuccess, userPhone }: DepositMod
                 M-Pesa Phone Number
               </label>
               <input
-                type="tel"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
+                type="text"
+                value={phone.length > 5 ? phone.slice(0, 5) + "*".repeat(phone.length - 5) : phone}
+                onChange={(e) => {
+                  const raw = e.target.value;
+                  if (raw.length < phone.length) {
+                    setPhone(phone.slice(0, raw.length));
+                  } else if (raw.length > phone.length) {
+                    const added = raw.slice(-1);
+                    setPhone(phone + added);
+                  }
+                }}
                 placeholder="07XX XXX XXX"
                 className="w-full px-4 py-3 rounded-xl bg-[#13161e] border border-white/[0.07] text-white text-sm focus:outline-none focus:border-[#833ab4]/50"
               />
@@ -417,7 +425,7 @@ export function DepositModal({ open, onClose, onSuccess, userPhone }: DepositMod
               </div>
               <p className="text-[10px] text-gray-500">Ref: {cryptoResult.reference}</p>
               <input
-                type="text"
+                type="password"
                 value={txHash}
                 onChange={(e) => setTxHash(e.target.value)}
                 placeholder="Paste transaction hash"
