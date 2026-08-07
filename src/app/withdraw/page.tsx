@@ -304,7 +304,7 @@ export default function WithdrawPage() {
               </div>
 
               <button
-                onClick={() => { setSuccess(null); router.push("/"); }}
+                onClick={() => { setSuccess(null); router.push("/trade"); }}
                 className="w-full h-12 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white font-bold text-sm transition flex items-center justify-center gap-2"
               >
                 Done
