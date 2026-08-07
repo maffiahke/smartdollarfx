@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, memo } from "react";
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 let tvLoaded = false;
 
 function TradingViewWidget() {
@@ -13,8 +15,9 @@ function TradingViewWidget() {
     if (!el) return;
 
     function initChart() {
-      if (typeof window.TradingView !== "undefined") {
-        new window.TradingView.widget({
+      const tv = (window as any).TradingView;
+      if (tv) {
+        new tv.widget({
           autosize: true,
           symbol: "FX:EURUSD",
           interval: "1",
