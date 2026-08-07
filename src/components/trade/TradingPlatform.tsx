@@ -30,6 +30,7 @@ import { DepositModal } from "../payments/DepositModal";
 import { ASSETS, type Asset } from "@/lib/assets";
 import { PositionsPanel, type Position, type PositionsTab } from "./PositionsPanel";
 import { OrderPanel, type ContractType } from "./OrderPanel";
+import TradingViewWidget from "./TradingViewWidget";
 
 interface TradingPlatformProps {
   forceDemo?: boolean;
@@ -104,11 +105,6 @@ export function TradingPlatform({ forceDemo = false }: TradingPlatformProps) {
   const [demoBalance, setDemoBalance] = useState(10000);
   const displayBalance = accountMode === "real" ? balance : demoBalance;
   const [timeLeft, setTimeLeft] = useState<Record<string, number>>({});
-
-  const desktopCanvasRef = useRef<HTMLCanvasElement>(null);
-  const mobileCanvasRef = useRef<HTMLCanvasElement>(null);
-  const chartContainerRef = useRef<HTMLDivElement>(null);
-  const mobileChartContainerRef = useRef<HTMLDivElement>(null);
 
   // Guards against overlapping calls — the resolve-positions effect below
   // calls syncFromApi() on every price tick (every ~800ms) while a
@@ -216,141 +212,6 @@ export function TradingPlatform({ forceDemo = false }: TradingPlatformProps) {
     const priceInterval = setInterval(tickPrice, 800);
     return () => clearInterval(priceInterval);
   }, [isAuthenticated, selectedAsset.id]);
-
-  // Redraw chart on container resize — observe both desktop and mobile containers
-  useEffect(() => {
-    const desktopContainer = chartContainerRef.current;
-    const mobileContainer = mobileChartContainerRef.current;
-    const ro = new ResizeObserver(() => {
-      setPriceHistory((h) => [...h]);
-    });
-    if (desktopContainer) ro.observe(desktopContainer);
-    if (mobileContainer) ro.observe(mobileContainer);
-    return () => ro.disconnect();
-  }, []);
-
-  // Reusable draw routine — called once per visible canvas so desktop and
-  // mobile both render the live line independently (they don't share a canvas).
-  const drawChartOnCanvas = useCallback((canvas: HTMLCanvasElement | null) => {
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    const dpr = window.devicePixelRatio || 1;
-    const rect = canvas.getBoundingClientRect();
-    if (rect.width === 0 || rect.height === 0) return;
-
-    canvas.width = rect.width * dpr;
-    canvas.height = rect.height * dpr;
-    ctx.scale(dpr, dpr);
-
-    const w = rect.width;
-    const h = rect.height;
-    const padding = Math.min(20, w * 0.04);
-    const min = Math.min(...priceHistory) - 5;
-    const max = Math.max(...priceHistory) + 5;
-    const range = max - min || 1;
-
-    ctx.clearRect(0, 0, w, h);
-    ctx.fillStyle = "#070809";
-    ctx.fillRect(0, 0, w, h);
-
-    // Grid lines
-    ctx.strokeStyle = "rgba(255,255,255,0.03)";
-    ctx.lineWidth = 1;
-    for (let i = 0; i < 5; i++) {
-      const y = padding + ((h - padding * 2) / 4) * i;
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(w, y);
-      ctx.stroke();
-    }
-
-    const isUp = priceHistory[priceHistory.length - 1] >= priceHistory[priceHistory.length - 2];
-    const color = isUp ? "#22c55e" : "#ef4444";
-
-    const points = priceHistory.map((p, i) => ({
-      x: padding + (i / (priceHistory.length - 1)) * (w - padding * 2),
-      y: h - padding - ((p - min) / range) * (h - padding * 2),
-    }));
-
-    // Soft glow behind the line (cloudy effect)
-    ctx.save();
-    ctx.shadowColor = isUp ? "rgba(34,197,94,0.55)" : "rgba(239,68,68,0.55)";
-    ctx.shadowBlur = 10;
-    ctx.beginPath();
-    points.forEach((pt, i) => {
-      if (i === 0) ctx.moveTo(pt.x, pt.y);
-      else {
-        const prev = points[i - 1];
-        const midX = (prev.x + pt.x) / 2;
-        const midY = (prev.y + pt.y) / 2;
-        ctx.quadraticCurveTo(prev.x, prev.y, midX, midY);
-      }
-    });
-    ctx.lineTo(points[points.length - 1].x, points[points.length - 1].y);
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 2;
-    ctx.stroke();
-    ctx.restore();
-
-    // Cloudy gradient fill
-    const grad = ctx.createLinearGradient(0, 0, 0, h);
-    grad.addColorStop(0, isUp ? "rgba(34,197,94,0.22)" : "rgba(239,68,68,0.22)");
-    grad.addColorStop(0.35, isUp ? "rgba(34,197,94,0.10)" : "rgba(239,68,68,0.10)");
-    grad.addColorStop(0.7, isUp ? "rgba(34,197,94,0.03)" : "rgba(239,68,68,0.03)");
-    grad.addColorStop(1, "rgba(0,0,0,0)");
-    ctx.beginPath();
-    points.forEach((pt, i) => {
-      if (i === 0) ctx.moveTo(pt.x, pt.y);
-      else {
-        const prev = points[i - 1];
-        const midX = (prev.x + pt.x) / 2;
-        const midY = (prev.y + pt.y) / 2;
-        ctx.quadraticCurveTo(prev.x, prev.y, midX, midY);
-      }
-    });
-    ctx.lineTo(points[points.length - 1].x, points[points.length - 1].y);
-    ctx.lineTo(w - padding, h - padding);
-    ctx.lineTo(padding, h - padding);
-    ctx.closePath();
-    ctx.fillStyle = grad;
-    ctx.fill();
-
-    const lastY = h - padding - ((price - min) / range) * (h - padding * 2);
-
-    // Dashed horizontal price line
-    ctx.beginPath();
-    ctx.setLineDash([4, 4]);
-    ctx.strokeStyle = "rgba(59,130,246,0.6)";
-    ctx.lineWidth = 1;
-    ctx.moveTo(padding, lastY);
-    ctx.lineTo(w - 64, lastY);
-    ctx.stroke();
-    ctx.setLineDash([]);
-
-    // Glowing dot at tip
-    ctx.save();
-    ctx.shadowColor = color;
-    ctx.shadowBlur = 8;
-    ctx.beginPath();
-    ctx.arc(w - padding, lastY, 4, 0, Math.PI * 2);
-    ctx.fillStyle = color;
-    ctx.fill();
-    ctx.restore();
-
-    // Border
-    ctx.strokeStyle = "rgba(255,255,255,0.06)";
-    ctx.lineWidth = 1;
-    ctx.strokeRect(0.5, 0.5, w - 1, h - 1);
-  }, [priceHistory, price]);
-
-  // Draw to both canvases (whichever is actually mounted/visible) whenever
-  // data changes. (Theme-based redraw removed — theme toggle is paused for now.)
-  useEffect(() => {
-    drawChartOnCanvas(desktopCanvasRef.current);
-    drawChartOnCanvas(mobileCanvasRef.current);
-  }, [drawChartOnCanvas]);
 
   // Persist demo balance changes to the server (authenticated users only)
   const demoBalanceRef = useRef(demoBalance);
@@ -905,26 +766,21 @@ export function TradingPlatform({ forceDemo = false }: TradingPlatformProps) {
             })}
           </div>
           <div
-            ref={chartContainerRef}
             className="flex-1 relative bg-[#070809] min-h-[180px] m-3 rounded-xl border border-white/[0.07] overflow-hidden"
           >
-            <canvas ref={desktopCanvasRef} className="absolute inset-0 w-full h-full" />
+            <TradingViewWidget />
 
-            {/* Asset name + live price/change — overlaid top-left */}
-            <div className="absolute top-3 left-3 z-10">
+            {/* Asset selector — overlaid top-left */}
+            <div className="absolute top-3 left-3 z-20">
               <button
                 onClick={() => setAssetDropdown((v) => !v)}
-                className="flex items-center gap-2 bg-black/30 backdrop-blur-sm rounded-xl px-3 py-2 hover:bg-black/40 transition"
+                className="flex items-center gap-2 bg-black/40 backdrop-blur-sm rounded-xl px-3 py-2 hover:bg-black/50 transition"
               >
                 <div className="w-7 h-7 rounded-lg bg-[#833ab4]/15 border border-[#833ab4]/25 flex items-center justify-center shrink-0">
                   <BarChart3 className="w-3.5 h-3.5 text-[#833ab4]" />
                 </div>
                 <div className="text-left min-w-0">
                   <div className="text-sm font-bold text-white truncate">{selectedAsset.name}</div>
-                  <div className="text-[11px] text-emerald-400 flex items-center gap-1">
-                    <span className="tabular-nums">{price.toFixed(2)}</span>
-                    <span>+0.41 (0.00%)</span>
-                  </div>
                 </div>
                 <ChevronDown className="w-3.5 h-3.5 text-gray-400 shrink-0" />
               </button>
@@ -947,30 +803,6 @@ export function TradingPlatform({ forceDemo = false }: TradingPlatformProps) {
                   </div>
                 </>
               )}
-            </div>
-
-            {/* PRICE box — overlaid top-right */}
-            <div className="absolute top-3 right-3 z-10 bg-black/30 backdrop-blur-sm rounded-xl px-4 py-2 text-right">
-              <div className="text-[9px] text-gray-400 font-semibold uppercase tracking-wider">Price</div>
-              <div className="text-lg font-bold text-white tabular-nums leading-tight">{price.toFixed(2)}</div>
-            </div>
-
-            {/* Desktop price ladder */}
-            <div className="absolute right-0 top-0 bottom-0 w-16 xl:w-20 flex flex-col justify-around items-end pr-2 pointer-events-none pt-16">
-              {[2, 1, 0, -1, -2].map((offset) => {
-                const val = (price + offset * 0.35).toFixed(2);
-                const isCurrent = offset === 0;
-                return (
-                  <div
-                    key={offset}
-                    className={`text-[10px] xl:text-[11px] tabular-nums font-semibold px-1.5 xl:px-2 py-0.5 rounded ${
-                      isCurrent ? "bg-gradient-brand text-white" : "text-gray-400"
-                    }`}
-                  >
-                    {val}
-                  </div>
-                );
-              })}
             </div>
           </div>
 
@@ -1026,14 +858,14 @@ export function TradingPlatform({ forceDemo = false }: TradingPlatformProps) {
 
               {/* Chart card — asset info and price overlaid, TagBinary style */}
               <div className="px-2 py-1.5 bg-[#0a0c12] shrink-0">
-                <div ref={mobileChartContainerRef} className="h-[22vh] min-h-[150px] max-h-[230px] relative bg-[#070809] rounded-xl border border-white/[0.07] overflow-hidden">
-                  <canvas ref={mobileCanvasRef} className="absolute inset-0 w-full h-full" />
+                <div className="h-[22vh] min-h-[150px] max-h-[230px] relative bg-[#070809] rounded-xl border border-white/[0.07] overflow-hidden">
+                    <TradingViewWidget />
 
-                  {/* Asset name + live price/change — overlaid top-left */}
-                  <div className="absolute top-2 left-2 z-10">
+                  {/* Asset selector — overlaid top-left */}
+                  <div className="absolute top-2 left-2 z-20">
                     <button
                       onClick={() => setAssetDropdown((v) => !v)}
-                      className="flex items-center gap-2 bg-black/30 backdrop-blur-sm rounded-xl px-2.5 py-1.5 max-w-[78%]"
+                      className="flex items-center gap-2 bg-black/40 backdrop-blur-sm rounded-xl px-2.5 py-1.5 max-w-[78%]"
                     >
                       <div className="w-6 h-6 rounded-lg bg-[#833ab4]/15 border border-[#833ab4]/25 flex items-center justify-center shrink-0">
                         <BarChart3 className="w-3 h-3 text-[#833ab4]" />
@@ -1041,10 +873,6 @@ export function TradingPlatform({ forceDemo = false }: TradingPlatformProps) {
                       <div className="text-left min-w-0">
                         <div className="text-[11px] sm:text-xs font-bold text-white truncate leading-tight">
                           {selectedAsset.name}
-                        </div>
-                        <div className="text-[9px] sm:text-[10px] text-emerald-400 flex items-center gap-1 leading-tight">
-                          <span className="tabular-nums">{price.toFixed(2)}</span>
-                          <span>+0.41 (0.00%)</span>
                         </div>
                       </div>
                       <ChevronDown className="w-3 h-3 text-gray-400 shrink-0" />
@@ -1068,32 +896,6 @@ export function TradingPlatform({ forceDemo = false }: TradingPlatformProps) {
                         </div>
                       </>
                     )}
-                  </div>
-
-                  {/* PRICE box — overlaid top-right */}
-                  <div className="absolute top-2 right-2 z-10 bg-black/30 backdrop-blur-sm rounded-xl px-3 py-1.5 text-right">
-                    <div className="text-[8px] sm:text-[9px] text-gray-400 font-semibold uppercase tracking-wider">Price</div>
-                    <div className="text-sm sm:text-base font-bold text-white tabular-nums leading-tight">
-                      {price.toFixed(2)}
-                    </div>
-                  </div>
-
-                  {/* Price ladder */}
-                  <div className="absolute right-0 top-0 bottom-0 w-16 sm:w-20 flex flex-col justify-around items-end pr-1.5 sm:pr-2 pointer-events-none pt-12">
-                    {[2, 1, 0, -1, -2].map((offset) => {
-                      const val = (price + offset * 0.35).toFixed(2);
-                      const isCurrent = offset === 0;
-                      return (
-                        <div
-                          key={offset}
-                          className={`text-[10px] sm:text-[11px] tabular-nums font-semibold px-1.5 py-0.5 rounded ${
-                            isCurrent ? "bg-gradient-brand text-white" : "text-gray-400"
-                          }`}
-                        >
-                          {val}
-                        </div>
-                      );
-                    })}
                   </div>
                 </div>
               </div>
