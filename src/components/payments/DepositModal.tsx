@@ -198,6 +198,16 @@ export function DepositModal({ open, onClose, onSuccess, userPhone }: DepositMod
     { id: "crypto", label: "USDT", icon: Bitcoin },
   ];
 
+  const isCryptoPending = tab === "crypto" && !!cryptoResult && cryptoResult.status === "pending";
+
+  const submitDeposit = () => {
+    if (tab === "crypto" && isCryptoPending) {
+      confirmCrypto();
+      return;
+    }
+    handleDeposit();
+  };
+
   // ── Waiting Modal Overlay ──
   if (depositState === "waiting") {
     return (
@@ -406,24 +416,25 @@ export function DepositModal({ open, onClose, onSuccess, userPhone }: DepositMod
             </div>
           )}
 
-          {tab === "crypto" && cryptoResult && cryptoResult.status === "pending" && (
+          {isCryptoPending && (
             <div className="rounded-xl bg-[#13161e] border border-white/[0.07] p-4 space-y-3">
               <p className="text-xs text-gray-400">
-                Send <span className="text-white font-bold">${cryptoResult.amount} USDT</span> via
+                Send <span className="text-white font-bold">${cryptoResult?.amount} USDT</span> via
                 TRC20 to:
               </p>
               <div className="flex items-center gap-2">
                 <code className="flex-1 text-[10px] text-emerald-400 break-all">
-                  {cryptoResult.address}
+                  {cryptoResult?.address}
                 </code>
                 <button
-                  onClick={() => copyAddress(cryptoResult.address)}
+                  type="button"
+                  onClick={() => cryptoResult && copyAddress(cryptoResult.address)}
                   className="p-2 rounded-lg hover:bg-white/5 text-gray-400"
                 >
                   {copied ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
                 </button>
               </div>
-              <p className="text-[10px] text-gray-500">Ref: {cryptoResult.reference}</p>
+              <p className="text-[10px] text-gray-500">Ref: {cryptoResult?.reference}</p>
               <input
                 type="password"
                 value={txHash}
@@ -432,6 +443,7 @@ export function DepositModal({ open, onClose, onSuccess, userPhone }: DepositMod
                 className="w-full px-3 py-2 rounded-lg bg-[#1c2030] border border-white/[0.07] text-white text-xs"
               />
               <button
+                type="button"
                 onClick={confirmCrypto}
                 disabled={loading || txHash.length < 10}
                 className="w-full py-2.5 rounded-xl text-white text-sm font-semibold disabled:opacity-40 bg-gradient-brand"
@@ -441,9 +453,10 @@ export function DepositModal({ open, onClose, onSuccess, userPhone }: DepositMod
             </div>
           )}
 
-          {!cryptoResult && (
+          {!isCryptoPending && (
             <button
-              onClick={handleDeposit}
+              type="button"
+              onClick={submitDeposit}
               disabled={loading || amount < MIN_DEPOSIT}
               className="w-full py-3 rounded-xl text-white font-semibold text-sm disabled:opacity-40"
               style={{ background: "linear-gradient(90deg, rgba(131,58,180,1) 0%, rgba(217,0,0,1) 50%, rgba(194,252,69,1) 100%)" }}
