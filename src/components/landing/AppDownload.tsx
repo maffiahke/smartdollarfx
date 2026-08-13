@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { ArrowRight, Bell, Download, ShieldCheck, TrendingUp, Zap } from "lucide-react";
 
 export function AppDownload() {
@@ -38,11 +39,15 @@ export function AppDownload() {
               Download the SmartDollarFX app. Get a better trading experience on your mobile device.
             </p>
             <div className="flex flex-col sm:flex-row items-center gap-3 justify-center md:justify-start">
-              <button className="group inline-flex items-center justify-center gap-2.5 px-7 py-3.5 rounded-xl font-bold text-[15px] bg-white text-[#1e40af] shadow-xl shadow-black/15 hover:shadow-2xl active:scale-[0.97] transition-all">
+              <Link
+                href="/download/smartdollarfx.apk"
+                download
+                className="group inline-flex items-center justify-center gap-2.5 px-7 py-3.5 rounded-xl font-bold text-[15px] bg-white text-[#1e40af] shadow-xl shadow-black/15 hover:shadow-2xl active:scale-[0.97] transition-all"
+              >
                 <Download className="w-4 h-4" />
                 Download App
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
-              </button>
+              </Link>
               <div className="flex items-center gap-3 text-white/40 text-xs">
                 <span className="flex items-center gap-1">
                   <ShieldCheck className="w-3.5 h-3.5" /> Secure
