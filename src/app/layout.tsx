@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
 import { Inter } from "next/font/google";
+import { AppBanner } from "@/components/AppBanner";
 import { SessionProvider } from "@/components/providers/SessionProvider";
 import "./globals.css";
 
@@ -27,6 +28,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.className} antialiased`}>
+        <AppBanner />
         <SessionProvider>{children}</SessionProvider>
         <Script id="brevo-conversations" strategy="afterInteractive">
           {`(function(d, w, c) {

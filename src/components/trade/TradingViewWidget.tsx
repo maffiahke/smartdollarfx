@@ -1,61 +1,83 @@
 "use client";
 
-import { useEffect, useRef, memo } from "react";
+import { useEffect, useRef } from "react";
+import Script from "next/script";
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
+type TradingViewWidgetApi = {
+  widget: new (options: Record<string, unknown>) => unknown;
+};
 
-let tvLoaded = false;
+function getTradingViewWindow(): (Window & { TradingView?: TradingViewWidgetApi }) | undefined {
+  if (typeof window === "undefined") return undefined;
+  return window as Window & { TradingView?: TradingViewWidgetApi };
+}
 
-function TradingViewWidget() {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const chartId = useRef(`tradingview_chart_${Math.random().toString(36).slice(2, 8)}`);
+let tvReady: Promise<void> | null = null;
+
+function waitForTradingView(): Promise<void> {
+  if (!tvReady) {
+    tvReady = new Promise<void>((resolve) => {
+      const check = () => {
+        const win = getTradingViewWindow();
+        if (win?.TradingView) {
+          resolve();
+        } else {
+          setTimeout(check, 100);
+        }
+      };
+      check();
+    });
+  }
+  return tvReady;
+}
+
+export default function TradingViewWidget() {
+  const id = useRef(`tv_${Math.random().toString(36).slice(2, 8)}`);
+  const mounted = useRef(false);
 
   useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
+    mounted.current = true;
 
-    function initChart() {
-      const tv = (window as any).TradingView;
-      if (tv) {
-        new tv.widget({
-          autosize: true,
-          symbol: "FX:EURUSD",
-          interval: "1",
-          timezone: "Africa/Nairobi",
-          theme: "dark",
-          style: "1",
-          locale: "en",
-          toolbar_bg: "#0B0E11",
-          enable_publishing: false,
-          hide_side_toolbar: true,
-          container_id: chartId.current,
-          backgroundColor: "#0B0E11",
-          gridColor: "rgba(42, 46, 57, 0.06)",
-          hide_top_toolbar: true,
-        });
-      } else {
-        console.error("TradingView not loaded");
-        setTimeout(initChart, 1000);
-      }
-    }
+    waitForTradingView().then(() => {
+      if (!mounted.current) return;
+      const container = document.getElementById(id.current);
+      if (!container) return;
+      container.innerHTML = "";
 
-    if (!tvLoaded) {
-      tvLoaded = true;
-      const s = document.createElement("script");
-      s.src = "https://s3.tradingview.com/tv.js";
-      s.async = true;
-      s.onload = initChart;
-      document.body.appendChild(s);
-    } else {
-      initChart();
-    }
+      const win = getTradingViewWindow();
+      const TradingView = win?.TradingView;
+      if (!TradingView) return;
+
+      new TradingView.widget({
+        autosize: true,
+        symbol: "FX:EURUSD",
+        interval: "1",
+        timezone: "Africa/Nairobi",
+        theme: "dark",
+        style: "1",
+        locale: "en",
+        toolbar_bg: "#0B0E11",
+        enable_publishing: false,
+        hide_side_toolbar: true,
+        container_id: id.current,
+        backgroundColor: "#0B0E11",
+        gridColor: "rgba(42, 46, 57, 0.06)",
+        hide_top_toolbar: true,
+      });
+    });
 
     return () => {
-      if (el) el.innerHTML = "";
+      mounted.current = false;
     };
   }, []);
 
-  return <div ref={containerRef} id={chartId.current} style={{ height: "100%", width: "100%" }} />;
+  return (
+    <>
+      <Script
+        src="https://s3.tradingview.com/tv.js"
+        strategy="afterInteractive"
+      />
+      <div id={id.current} style={{ height: "100%", width: "100%" }} />
+    </>
+  );
 }
-
-export default memo(TradingViewWidget);

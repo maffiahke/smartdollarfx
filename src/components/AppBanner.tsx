@@ -11,7 +11,7 @@ export function AppBanner() {
     try {
       const dismissed = localStorage.getItem("app_banner_dismissed");
       if (dismissed === "1") setVisible(false);
-    } catch (e) {
+    } catch {
       // ignore
     }
   }, []);
@@ -19,7 +19,7 @@ export function AppBanner() {
   function dismiss() {
     try {
       localStorage.setItem("app_banner_dismissed", "1");
-    } catch (e) {
+    } catch {
       // ignore
     }
     setVisible(false);
