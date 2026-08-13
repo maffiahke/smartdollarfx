@@ -1,3 +1,4 @@
+import { AppBanner } from "@/components/AppBanner";
 import { Navbar } from "@/components/Navbar";
 import { TickerMarquee } from "@/components/TickerMarquee";
 import { LiveChartPreview } from "@/components/LiveChartPreview";
@@ -13,6 +14,7 @@ import { Footer } from "@/components/Footer";
 export default function Home() {
   return (
     <div className="bg-gradient-to-b from-[#070b17] via-[#0b1428] to-[#0f1b3d] text-white min-h-screen-safe overflow-x-hidden transition-colors duration-300">
+      <AppBanner />
       <Navbar />
       <Hero />
       <TickerMarquee />
