@@ -1,9 +1,30 @@
-export function getUsdtDepositAddress(): string | null {
-  return process.env.CRYPTO_USDT_ADDRESS ?? null;
+import { prisma } from "@/lib/prisma";
+
+/**
+ * Reads the USDT (TRC-20) deposit address. The database is the source of
+ * truth: we look up the `usdt` PaymentMethod row and use its `walletAddress`
+ * from the stored `config` JSON. If the DB row is missing or has no address
+ * configured, we fall back to the CRYPTO_USDT_ADDRESS env var so deposits
+ * still work during setup.
+ */
+export async function getUsdtDepositAddress(): Promise<string | null> {
+  try {
+    const method = await prisma.paymentMethod.findUnique({
+      where: { name: "usdt" },
+    });
+    if (method?.config) {
+      const cfg = JSON.parse(method.config) as { walletAddress?: string };
+      const dbAddress = cfg.walletAddress?.trim();
+      if (dbAddress) return dbAddress;
+    }
+  } catch {
+    // DB unreachable — fall through to the env var below
+  }
+  return process.env.CRYPTO_USDT_ADDRESS?.trim() || null;
 }
 
-export function isCryptoConfigured(): boolean {
-  return !!getUsdtDepositAddress();
+export async function isCryptoConfigured(): Promise<boolean> {
+  return !!(await getUsdtDepositAddress());
 }
 
 export function isAutoConfirmEnabled(): boolean {
@@ -65,7 +86,7 @@ export async function verifyUsdtTransfer(params: {
   txHash: string;
   minAmount: number;
 }): Promise<VerifyUsdtTransferResult> {
-  const ourAddress = getUsdtDepositAddress();
+  const ourAddress = await getUsdtDepositAddress();
   if (!ourAddress) {
     return { verified: false, reason: "Crypto deposits not configured" };
   }

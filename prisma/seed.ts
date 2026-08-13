@@ -24,16 +24,36 @@ async function main() {
     console.log("Admin already exists, skipping seed.");
   }
 
-  // Seed default payment methods
+  // Seed default payment methods. The USDT address defaults to the
+  // CRYPTO_USDT_ADDRESS env var and is stored in the database so the website
+  // can serve it from there.
+  const usdtAddress = process.env.CRYPTO_USDT_ADDRESS?.trim() || "";
   const methods = [
     { name: "payhero", label: "PayHero (M-Pesa)", config: JSON.stringify({ apiKey: "", phoneNumber: "" }) },
-    { name: "usdt", label: "USDT (TRC-20)", config: JSON.stringify({ walletAddress: "", network: "TRC-20" }) },
+    {
+      name: "usdt",
+      label: "USDT (TRC-20)",
+      config: JSON.stringify({ walletAddress: usdtAddress, network: "TRC-20" }),
+    },
   ];
   for (const m of methods) {
     const existingMethod = await prisma.paymentMethod.findUnique({ where: { name: m.name } });
     if (!existingMethod) {
       await prisma.paymentMethod.create({ data: m });
       console.log(`Payment method created: ${m.name}`);
+    } else if (m.name === "usdt" && usdtAddress) {
+      // Keep the DB as the source of truth: backfill the address from the
+      // env var so the website can serve it from the database even if the
+      // record was created before the address was configured.
+      const cfg = JSON.parse(existingMethod.config || "{}");
+      if (!cfg.walletAddress) {
+        cfg.walletAddress = usdtAddress;
+        await prisma.paymentMethod.update({
+          where: { name: "usdt" },
+          data: { config: JSON.stringify(cfg) },
+        });
+        console.log("Backfilled USDT wallet address into database.");
+      }
     }
   }
 }

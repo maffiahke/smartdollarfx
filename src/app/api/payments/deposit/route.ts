@@ -7,7 +7,6 @@ import {
   generateDepositReference,
   getUsdtDepositAddress,
   isAutoConfirmEnabled,
-  isCryptoConfigured,
 } from "@/lib/crypto";
 
 const DEFAULTS = { minDeposit: "5", maxDeposit: "10000" };
@@ -139,10 +138,13 @@ export async function POST(req: Request) {
     }
 
     if (method === "crypto") {
-      const address = getUsdtDepositAddress();
-      if (!isCryptoConfigured()) {
+      const address = await getUsdtDepositAddress();
+      if (!address) {
         return NextResponse.json(
-          { error: "Crypto deposits not configured. Set CRYPTO_USDT_ADDRESS in .env" },
+          {
+            error:
+              "Crypto deposits not configured. Add a USDT address in the database PaymentMethod table or set CRYPTO_USDT_ADDRESS in .env",
+          },
           { status: 503 }
         );
       }
