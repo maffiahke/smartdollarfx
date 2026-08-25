@@ -1,4 +1,4 @@
-# SmartDollarFX
+# PrimeBinaryFX
 
 A binary options trading platform built with Next.js, Prisma, and Neon Postgres.
 
@@ -25,7 +25,7 @@ npm run dev
 Open [http://localhost:3000](http://localhost:3000).
 
 ### Default admin login
-- **Email:** admin@smartdollarfx.com
+- **Email:** admin@primebinaryfx.com
 - **Password:** Admin@123
 
 ## Pages
@@ -46,8 +46,8 @@ Open [http://localhost:3000](http://localhost:3000).
 2. **Environment Variables** — In Vercel dashboard, set all variables from `.env.example`:
    - `DATABASE_URL` — Neon connection string
    - `AUTH_SECRET` — Run `openssl rand -base64 32`
-   - `NEXTAUTH_URL` — Your production URL (e.g. `https://smartdollarfx.com`)
-   - `MPESA_CALLBACK_URL` — e.g. `https://smartdollarfx.com/api/payments/mpesa/callback`
+   - `NEXTAUTH_URL` — Your production URL (e.g. `https://primebinaryfx.com`)
+   - `MPESA_CALLBACK_URL` — e.g. `https://primebinaryfx.com/api/payments/mpesa/callback`
    - PayHero & crypto settings
 3. **Push schema** — Run `npx prisma db push` locally against the Neon URL, or let Vercel's build command handle it
 4. **Seed admin** — `npx tsx prisma/seed.ts` against the production DB

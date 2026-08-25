@@ -47,7 +47,7 @@ export async function initiateStkPush(params: {
     throw new Error("MPESA_CALLBACK_URL not configured");
   }
 
-  const externalReference = params.accountReference?.slice(0, 32) ?? "SMARTDOLLARFX";
+  const externalReference = params.accountReference?.slice(0, 32) ?? "PRIMEBINARYFX";
   const authHeader = `Basic ${Buffer.from(`${username}:${password}`).toString("base64")}`;
 
   let response;

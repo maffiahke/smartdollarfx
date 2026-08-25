@@ -106,7 +106,7 @@ export async function POST(req: Request) {
           phone: mpesaPhone,
           amountKes,
           accountReference: reference,
-          transactionDesc: "SmartDollarFX deposit",
+          transactionDesc: "PrimeBinaryFX deposit",
         });
 
         await prisma.transaction.update({

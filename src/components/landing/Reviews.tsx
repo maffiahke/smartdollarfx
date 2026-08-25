@@ -3,7 +3,7 @@ import { Star } from "lucide-react";
 const REVIEWS = [
   {
     quote:
-      "Switched from three other platforms. SmartDollarFX is the fastest and most reliable by far.",
+      "Switched from three other platforms. PrimeBinaryFX is the fastest and most reliable by far.",
     name: "Alex M.",
     country: "USA",
     initials: "AM",
