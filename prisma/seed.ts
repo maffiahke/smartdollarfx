@@ -5,7 +5,7 @@ const prisma = new PrismaClient();
 
 async function main() {
   // Seed default admin
-  const adminEmail = "admin@smartdollarfx.com";
+  const adminEmail = "admin@primebinaryfx.com";
   const existing = await prisma.user.findUnique({ where: { email: adminEmail } });
   if (!existing) {
     const passwordHash = await bcrypt.hash("Admin@123", 12);
@@ -19,7 +19,7 @@ async function main() {
         demoBalance: 0,
       },
     });
-    console.log("Default admin created: admin@smartdollarfx.com / Admin@123");
+    console.log("Default admin created: admin@primebinaryfx.com / Admin@123");
   } else {
     console.log("Admin already exists, skipping seed.");
   }

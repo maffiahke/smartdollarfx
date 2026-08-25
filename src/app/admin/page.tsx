@@ -69,7 +69,7 @@ export default function AdminDashboard() {
       {/* Header */}
       <div>
         <h1 className="text-2xl font-extrabold text-white">Dashboard</h1>
-        <p className="text-sm text-gray-500 mt-1">Overview of SmartDollarFX platform</p>
+        <p className="text-sm text-gray-500 mt-1">Overview of PrimeBinaryFX platform</p>
       </div>
 
       {/* Stats grid */}

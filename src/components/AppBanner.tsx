@@ -28,8 +28,8 @@ export function AppBanner() {
   if (!visible) return null;
 
   // Edit the href below to point to your APK file location
-  const apkHref = "/download/smartdollarfx.apk";
-  const siteName = "SmartDollarFX";
+  const apkHref = "/download/primebinaryfx.apk";
+  const siteName = "PrimeBinaryFX";
 
   return (
     <div className="w-full bg-gradient-to-r from-[#5b8def] to-[#6a4efb] text-white">

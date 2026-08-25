@@ -50,7 +50,7 @@ export default function AdminLoginPage() {
             S
           </div>
           <h1 className="text-2xl font-extrabold text-white">Admin Panel</h1>
-          <p className="text-sm text-gray-500 mt-1">SmartDollarFX</p>
+          <p className="text-sm text-gray-500 mt-1">PrimeBinaryFX</p>
         </div>
 
         <form onSubmit={handleSubmit} className="bg-[#0d0f17] border border-white/[0.07] rounded-2xl p-6 space-y-4">
@@ -68,7 +68,7 @@ export default function AdminLoginPage() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="admin@smartdollarfx.com"
+                placeholder="admin@primebinaryfx.com"
                 required
                 className="w-full bg-[#141822] border border-white/[0.08] rounded-xl pl-10 pr-3.5 py-3 text-sm text-white outline-none focus:border-[#833ab4]/50 transition"
               />
