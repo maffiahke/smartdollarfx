@@ -445,7 +445,7 @@ export function TradingPlatform({ forceDemo = false }: TradingPlatformProps) {
               <Menu className="w-5 h-5" />
             </button>
             <span className="text-[13px] xs:text-sm sm:text-lg font-extrabold tracking-tight select-none whitespace-nowrap">
-              <span className="text-gradient-brand">SMART</span><span className="text-white">DOLLARFX</span>
+              <span className="text-gradient-brand">PRIME</span><span className="text-white">BINARYFX</span>
             </span>
           </div>
 

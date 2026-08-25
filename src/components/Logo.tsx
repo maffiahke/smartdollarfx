@@ -10,8 +10,8 @@ export function Logo({ size = "md" }: LogoProps) {
   return (
     <Link href="/" className="flex items-center">
       <span className={`${textSize} font-extrabold tracking-tight`}>
-        <span className="text-gradient-brand">SMART</span>
-        <span className="text-white">DOLLARFX</span>
+        <span className="text-gradient-brand">PRIME</span>
+        <span className="text-white">BINARYFX</span>
       </span>
     </Link>
   );

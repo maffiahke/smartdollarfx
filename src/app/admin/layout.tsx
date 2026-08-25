@@ -68,10 +68,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         {/* Logo */}
         <div className="flex items-center justify-between px-4 h-16 border-b border-white/[0.07] shrink-0">
           <Link href="/admin" className="flex items-center gap-2">
-            <div className="w-9 h-9 rounded-xl bg-gradient-brand flex items-center justify-center text-sm font-extrabold">S</div>
+            <div className="w-9 h-9 rounded-xl bg-gradient-brand flex items-center justify-center text-sm font-extrabold">P</div>
             <div>
               <div className="text-sm font-extrabold leading-tight">
-                <span className="text-gradient-brand">SMART</span><span className="text-white">DOLLARFX</span>
+                <span className="text-gradient-brand">PRIME</span><span className="text-white">BINARYFX</span>
               </div>
               <div className="text-[9px] text-gray-500 uppercase tracking-wider">Admin</div>
             </div>
