@@ -28,7 +28,8 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.className} antialiased`}>
-        <AppBanner />
+        {/* App download banner hidden for now — re-enable by rendering <AppBanner /> here */}
+        {/* <AppBanner /> */}
         <SessionProvider>{children}</SessionProvider>
         <Script id="brevo-conversations" strategy="afterInteractive">
           {`(function(d, w, c) {
