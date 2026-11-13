@@ -23,6 +23,34 @@ model User {
   updatedAt    DateTime      @updatedAt
   trades       Trade[]
   transactions Transaction[]
+  messages     UserMessage[]
+  deviceTokens DeviceToken[]
+}
+
+// Withdrawal receipt feed consumed by the native SMS alert app:
+// GET /api/messages?username=<identifier> returns these rows, and each new
+// receipt is also delivered to the trader's registered devices via FCM.
+model UserMessage {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String   @default("MPESA")
+  body      String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+// FCM device tokens registered by the alert app via POST /api/messages/devices,
+// upserted by token so re-registrations never duplicate.
+model DeviceToken {
+  token     String   @id
+  userId    String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model Trade {

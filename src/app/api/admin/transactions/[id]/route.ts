@@ -1,5 +1,6 @@
 import { requireAdmin, unauthorized } from "@/lib/admin";
 import { prisma } from "@/lib/prisma";
+import { notifyWithdrawal } from "@/lib/receipts";
 import { NextResponse } from "next/server";
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -33,6 +34,17 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     data: { status: newStatus },
     include: { user: { select: { id: true, email: true, name: true } } },
   });
+
+  // When a withdrawal settles (or is rejected), deliver an MPESA-style
+  // receipt to the trader's linked SMS alert app — feed row + instant FCM
+  // push so the phone buzzes the moment the payout is handled.
+  if (tx.type === "withdrawal" && tx.status !== newStatus) {
+    try {
+      await notifyWithdrawal(id, newStatus === "completed");
+    } catch (err) {
+      console.error("withdrawal receipt delivery failed:", err);
+    }
+  }
 
   return NextResponse.json({ transaction: updated });
 }
