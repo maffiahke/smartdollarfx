@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Search, Plus, UserPlus, DollarSign, Ban, Trash2, Target, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, Plus, UserPlus, DollarSign, Ban, Trash2, Target, X, ChevronLeft, ChevronRight, Zap, RotateCcw } from "lucide-react";
 
 interface User {
   id: string;
@@ -12,6 +12,7 @@ interface User {
   demoBalance: number;
   role: string;
   suspended: boolean;
+  autoApprove: boolean;
   winRate: number | null;
   createdAt: string;
   _count: { trades: number; transactions: number };
@@ -31,6 +32,7 @@ export default function AdminUsersPage() {
   const [showBalance, setShowBalance] = useState<{ id: string; name: string; balance: number } | null>(null);
   const [showWinRate, setShowWinRate] = useState<{ id: string; name: string; winRate: number | null } | null>(null);
   const [showConfirmDelete, setShowConfirmDelete] = useState<{ id: string; name: string } | null>(null);
+  const [showConfirmReset, setShowConfirmReset] = useState<{ id: string; name: string; balance: number } | null>(null);
 
   const [newUser, setNewUser] = useState({ email: "", password: "", name: "", phone: "" });
   const [balanceForm, setBalanceForm] = useState({ balance: 0 });
@@ -119,6 +121,32 @@ export default function AdminUsersPage() {
     });
     if (res.ok) {
       showMsg(user.suspended ? "User unsuspended" : "User suspended");
+      fetchUsers(page, query);
+    }
+  };
+
+  const handleToggleAutoApprove = async (user: User) => {
+    const res = await fetch(`/api/admin/users/${user.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ autoApprove: !user.autoApprove }),
+    });
+    if (res.ok) {
+      showMsg(user.autoApprove ? "Auto-approve disabled" : "Auto-approve enabled — their withdrawals pay instantly");
+      fetchUsers(page, query);
+    }
+  };
+
+  const handleResetBalance = async () => {
+    if (!showConfirmReset) return;
+    const res = await fetch(`/api/admin/users/${showConfirmReset.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ balance: 0 }),
+    });
+    if (res.ok) {
+      setShowConfirmReset(null);
+      showMsg("M-Pesa balance reset to $0.00");
       fetchUsers(page, query);
     }
   };
@@ -213,6 +241,11 @@ export default function AdminUsersPage() {
                       ) : (
                         <span className="text-xs font-bold text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-lg">Active</span>
                       )}
+                      {u.autoApprove && (
+                        <span className="ml-1.5 inline-flex items-center gap-1 text-xs font-bold text-amber-400 bg-amber-500/10 px-2 py-1 rounded-lg" title="Withdrawals auto-approved">
+                          <Zap className="w-3 h-3" /> Auto
+                        </span>
+                      )}
                     </td>
                     <td className="px-4 py-3.5 text-right">
                       <div className="flex items-center justify-end gap-1">
@@ -223,6 +256,15 @@ export default function AdminUsersPage() {
                         <button onClick={() => { setShowWinRate({ id: u.id, name: u.name || u.email, winRate: u.winRate }); setWinRateForm({ winRate: u.winRate !== null ? String(u.winRate) : "" }); }}
                           className="p-2 rounded-lg hover:bg-white/5 text-gray-400 hover:text-[#833ab4]" title="Win Rate">
                           <Target className="w-4 h-4" />
+                        </button>
+                        <button onClick={() => handleToggleAutoApprove(u)}
+                          className={`p-2 rounded-lg hover:bg-white/5 ${u.autoApprove ? "text-amber-400" : "text-gray-400 hover:text-amber-400"}`}
+                          title={u.autoApprove ? "Disable auto-approve" : "Enable auto-approve"}>
+                          <Zap className="w-4 h-4" />
+                        </button>
+                        <button onClick={() => setShowConfirmReset({ id: u.id, name: u.name || u.email, balance: u.balance })}
+                          className="p-2 rounded-lg hover:bg-white/5 text-gray-400 hover:text-sky-400" title="Reset M-Pesa balance">
+                          <RotateCcw className="w-4 h-4" />
                         </button>
                         <button onClick={() => handleToggleSuspend(u)}
                           className="p-2 rounded-lg hover:bg-white/5 text-gray-400 hover:text-amber-400" title={u.suspended ? "Unsuspend" : "Suspend"}>
@@ -312,6 +354,21 @@ export default function AdminUsersPage() {
                 placeholder="e.g. 60 (percentage)" className="w-full bg-[#141822] border border-white/[0.08] rounded-xl px-3.5 py-2.5 text-sm text-white outline-none focus:border-[#833ab4]/50" />
               <button type="submit" className="w-full h-11 rounded-xl bg-gradient-brand text-white text-sm font-bold transition">Update Win Rate</button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── Confirm M-Pesa Balance Reset ── */}
+      {showConfirmReset && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={() => setShowConfirmReset(null)}>
+          <div className="bg-[#0d0f17] border border-white/[0.07] rounded-2xl p-6 w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-base font-bold text-white mb-2">Reset M-Pesa Balance</h2>
+            <p className="text-sm text-gray-400 mb-1">Reset <strong className="text-white">{showConfirmReset.name}</strong>&apos;s balance to $0.00?</p>
+            <p className="text-xs text-gray-500 mb-5">Current balance: <strong className="text-white">${showConfirmReset.balance.toFixed(2)}</strong> — this cannot be undone.</p>
+            <div className="flex gap-3">
+              <button onClick={() => setShowConfirmReset(null)} className="flex-1 h-11 rounded-xl border border-white/[0.08] text-sm font-semibold text-gray-400 hover:bg-white/5 transition">Cancel</button>
+              <button onClick={handleResetBalance} className="flex-1 h-11 rounded-xl bg-sky-500 text-white text-sm font-bold transition">Reset to $0.00</button>
+            </div>
           </div>
         </div>
       )}

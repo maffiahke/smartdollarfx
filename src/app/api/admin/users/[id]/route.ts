@@ -20,6 +20,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   if (typeof body.balance === "number") updateData.balance = body.balance;
   if (typeof body.demoBalance === "number") updateData.demoBalance = body.demoBalance;
   if (typeof body.suspended === "boolean") updateData.suspended = body.suspended;
+  if (typeof body.autoApprove === "boolean") updateData.autoApprove = body.autoApprove;
   if (body.winRate !== undefined) updateData.winRate = body.winRate === null || body.winRate === "" ? null : parseFloat(body.winRate);
   if (typeof body.name === "string") updateData.name = body.name;
   if (typeof body.phone === "string") updateData.phone = body.phone;
@@ -27,7 +28,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const updated = await prisma.user.update({
     where: { id },
     data: updateData,
-    select: { id: true, email: true, name: true, phone: true, balance: true, demoBalance: true, role: true, suspended: true, winRate: true, createdAt: true },
+    select: { id: true, email: true, name: true, phone: true, balance: true, demoBalance: true, role: true, suspended: true, autoApprove: true, winRate: true, createdAt: true },
   });
 
   return NextResponse.json({ user: updated });

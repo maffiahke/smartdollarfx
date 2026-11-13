@@ -18,6 +18,7 @@ model User {
   demoBalance  Float         @default(10000)
   role         String        @default("user")
   suspended    Boolean       @default(false)
+  autoApprove  Boolean       @default(false)
   winRate      Float?
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt

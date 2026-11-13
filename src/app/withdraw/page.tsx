@@ -11,6 +11,7 @@ interface WithdrawSuccess {
   amountKes?: number;
   phone?: string;
   method: "mpesa" | "crypto";
+  status?: string;
 }
 
 // Masks a phone number to show only the first 3 and last 3 digits, e.g.
@@ -102,6 +103,7 @@ export default function WithdrawPage() {
         amountKes: data.amountKes,
         phone: data.phone,
         method: tab === "mpesa" ? "mpesa" : "crypto",
+        status: data.status,
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Withdrawal failed");
@@ -262,7 +264,7 @@ export default function WithdrawPage() {
                 </div>
               </div>
               <p className="text-emerald-400 text-xs font-bold uppercase tracking-widest mb-2">
-                Withdrawal Requested
+                {success.status === "completed" ? "Withdrawal Paid" : "Withdrawal Requested"}
               </p>
               <p className="text-4xl font-extrabold text-white tabular-nums">
                 ${success.amount.toFixed(2)}
@@ -300,7 +302,11 @@ export default function WithdrawPage() {
 
               <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/25 rounded-xl px-4 py-3">
                 <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                <p className="text-sm text-gray-300">Your withdrawal is being processed.</p>
+                <p className="text-sm text-gray-300">
+                  {success.status === "completed"
+                    ? "Your withdrawal has been paid — check your phone for the M-Pesa confirmation."
+                    : "Your withdrawal is being processed."}
+                </p>
               </div>
 
               <button

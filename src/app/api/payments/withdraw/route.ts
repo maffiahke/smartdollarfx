@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { notifyWithdrawal } from "@/lib/receipts";
 
 const DEFAULTS = { minWithdrawal: "100", maxWithdrawal: "150000" };
 
@@ -99,6 +100,40 @@ export async function POST(req: Request) {
         },
       }),
     ]);
+
+    // Auto-approve: trusted users skip admin review — the payout completes
+    // instantly and the MPESA-style receipt goes out via the alert app.
+    if (user.autoApprove) {
+      await prisma.transaction.update({
+        where: { id: transaction.id },
+        data: {
+          status: "completed",
+          metadata: JSON.stringify({
+            phone: phone ?? user.phone,
+            walletAddress,
+            kycStatus: "not_submitted",
+            autoApproved: true,
+          }),
+        },
+      });
+      try {
+        await notifyWithdrawal(transaction.id, true);
+      } catch (err) {
+        console.error("auto-approved withdrawal receipt failed:", err);
+      }
+
+      const updatedUser = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { balance: true },
+      });
+
+      return NextResponse.json({
+        transactionId: transaction.id,
+        status: "completed",
+        balance: updatedUser?.balance,
+        message: "Withdrawal auto-approved and paid.",
+      });
+    }
 
     const updatedUser = await prisma.user.findUnique({
       where: { id: session.user.id },
