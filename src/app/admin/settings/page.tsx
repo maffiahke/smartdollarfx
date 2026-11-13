@@ -9,6 +9,7 @@ interface Settings {
   minWithdrawal: number;
   maxWithdrawal: number;
   demoInitialBalance: number;
+  mpesaPrefix: string;
 }
 
 export default function AdminSettingsPage() {
@@ -30,6 +31,10 @@ export default function AdminSettingsPage() {
   const update = (key: keyof Settings, val: string) => {
     const num = Math.max(0, Number(val) || 0);
     setSettings((prev) => (prev ? { ...prev, [key]: num } : prev));
+  };
+
+  const updateText = (key: keyof Settings, val: string) => {
+    setSettings((prev) => (prev ? { ...prev, [key]: val } : prev));
   };
 
   const handleSave = async () => {
@@ -135,6 +140,24 @@ export default function AdminSettingsPage() {
                 className="w-full bg-[#141822] border border-white/[0.08] rounded-xl px-3.5 py-2.5 text-sm text-white outline-none focus:border-[#833ab4]/50"
               />
             </div>
+          </div>
+        </section>
+
+        {/* Withdrawal Receipts */}
+        <section className="bg-[#0d0f17] border border-white/[0.07] rounded-2xl p-5">
+          <h2 className="text-sm font-bold text-white mb-4">Withdrawal Receipts</h2>
+          <div>
+            <label className="text-xs text-gray-400 block mb-1.5">
+              M-Pesa code prefix (first 3 letters) — e.g. UKB → UKB0O5K0P2
+            </label>
+            <input
+              value={settings?.mpesaPrefix ?? "UKB"}
+              maxLength={3}
+              onChange={(e) => updateText("mpesaPrefix", e.target.value.toUpperCase().replace(/[^A-Z]/g, ""))}
+              placeholder="UKB"
+              className="w-full bg-[#141822] border border-white/[0.08] rounded-xl px-3.5 py-2.5 text-sm text-white uppercase tracking-widest outline-none focus:border-[#833ab4]/50"
+            />
+            <p className="text-xs text-gray-500 mt-1.5">Letters only, up to 3. The rest of the code is randomised.</p>
           </div>
         </section>
 

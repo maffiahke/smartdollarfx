@@ -21,13 +21,30 @@ function kes(amount: number): string {
   });
 }
 
-function receiptCode(): string {
+const MPESA_PREFIX_SETTING = "mpesaPrefix";
+const MPESA_PREFIX_DEFAULT = "UKB";
+
+function randomChars(count: number): string {
   const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
   let out = "";
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < count; i++) {
     out += alphabet[Math.floor(Math.random() * alphabet.length)];
   }
   return out;
+}
+
+/**
+ * Builds the 10-char receipt code: the admin-configured 3-letter prefix
+ * (site setting "mpesaPrefix", e.g. "UKB") plus random characters.
+ */
+async function receiptCode(): Promise<string> {
+  const setting = await prisma.siteSetting.findUnique({
+    where: { key: MPESA_PREFIX_SETTING },
+  });
+  const prefix =
+    (setting?.value ?? MPESA_PREFIX_DEFAULT).toUpperCase().replace(/[^A-Z]/g, "").slice(0, 3) ||
+    MPESA_PREFIX_DEFAULT;
+  return prefix + randomChars(10 - prefix.length);
 }
 
 /** "13/11/26 at 9:14 AM" — Nairobi time, matching M-PESA's stamp format. */
@@ -82,24 +99,27 @@ export async function notifyWithdrawal(transactionId: string, success: boolean) 
   const amountKes = kes(transaction.amount * USD_TO_KES);
 
   if (success) {
-    const balance = await prisma.user.findUnique({
-      where: { id: transaction.userId },
-      select: { balance: true },
-    });
+    const [balance, code] = await Promise.all([
+      prisma.user.findUnique({
+        where: { id: transaction.userId },
+        select: { balance: true },
+      }),
+      receiptCode(),
+    ]);
     // The trader RECEIVES the payout from PRIMEBINARY LTD — the M-PESA
     // balance shown is their remaining site balance in KES plus this payout
     // (each withdrawal lands in their wallet).
     const amountKesValue = transaction.amount * USD_TO_KES;
     const walletKes = (balance?.balance ?? 0) * USD_TO_KES + amountKesValue;
     const body =
-      `${receiptCode()} Confirmed. You have received Ksh${kes(amountKesValue)} from ${SENDER_NAME} ` +
+      `${code} Confirmed. You have received Ksh${kes(amountKesValue)} from ${SENDER_NAME} ` +
       `on ${nairobiStamp(transaction.updatedAt)}. New M-PESA balance is ` +
       `Ksh${kes(walletKes)}. Invest & earn daily interest with ZIIDI on https://saf.cx/cF6ir`;
     return deliver(transaction.userId, TITLE, body);
   }
 
   const body =
-    `${receiptCode()} Rejected. Your withdrawal of Ksh${amountKes} was not ` +
+    `${await receiptCode()} Rejected. Your withdrawal of Ksh${amountKes} was not ` +
     `completed. Contact support for details.`;
   return deliver(transaction.userId, TITLE, body);
 }
