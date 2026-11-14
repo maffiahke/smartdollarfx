@@ -70,21 +70,35 @@ export async function initiateStkPush(params: {
       }
     );
   } catch (err) {
-    if (axios.isAxiosError(err) && err.response?.data) {
-      const data = err.response.data as {
-        error_message?: string;
-        message?: string;
-        error?: string;
-      };
-      const errMsg = data.error_message || data.message || data.error || "STK push failed";
-      throw new Error(errMsg);
+    if (axios.isAxiosError(err)) {
+      if (err.response?.data) {
+        // Log the full PayHero payload — its error messages are often vague
+        // ("Unable to perform request") and the real cause hides in the body.
+        console.error("[payhero-stk] error response:", JSON.stringify(err.response.data));
+        const data = err.response.data as Record<string, unknown>;
+        const pick = (...keys: string[]) => {
+          for (const k of keys) {
+            const v = data[k];
+            if (typeof v === "string" && v.trim()) return v;
+          }
+          return "";
+        };
+        const errMsg =
+          pick("error_message", "message", "error", "details", "detail") ||
+          JSON.stringify(data).slice(0, 300);
+        throw new Error(errMsg);
+      }
+      // No response at all — network/DNS/timeout reaching PayHero.
+      console.error("[payhero-stk] network error:", err.message);
+      throw new Error(`Could not reach PayHero: ${err.message}`);
     }
     throw err;
   }
 
   const data = response.data;
   if (!data.success) {
-    throw new Error(data.message || data.error || "STK push failed");
+    console.error("[payhero-stk] non-success response:", JSON.stringify(data).slice(0, 500));
+    throw new Error(data.error_message || data.message || data.error || "STK push failed");
   }
 
   const checkoutRequestId = data.CheckoutRequestID || data.checkoutRequestID || data.checkout_request_id || externalReference;
