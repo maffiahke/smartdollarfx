@@ -24,7 +24,7 @@ export async function GET(req: Request) {
       skip,
       take: limit,
       select: {
-        id: true, email: true, name: true, phone: true, balance: true,
+        id: true, email: true, name: true, phone: true, balance: true, mpesaBalance: true,
         demoBalance: true, role: true, suspended: true, autoApprove: true, winRate: true, createdAt: true,
         _count: { select: { trades: true, transactions: true } },
       },

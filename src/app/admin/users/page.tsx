@@ -14,6 +14,7 @@ interface User {
   suspended: boolean;
   autoApprove: boolean;
   winRate: number | null;
+  mpesaBalance: number;
   createdAt: string;
   _count: { trades: number; transactions: number };
 }
@@ -30,12 +31,13 @@ export default function AdminUsersPage() {
   // Modals
   const [showAdd, setShowAdd] = useState(false);
   const [showBalance, setShowBalance] = useState<{ id: string; name: string; balance: number } | null>(null);
+  const [showMpesa, setShowMpesa] = useState<{ id: string; name: string; mpesaBalance: number } | null>(null);
   const [showWinRate, setShowWinRate] = useState<{ id: string; name: string; winRate: number | null } | null>(null);
   const [showConfirmDelete, setShowConfirmDelete] = useState<{ id: string; name: string } | null>(null);
-  const [showConfirmReset, setShowConfirmReset] = useState<{ id: string; name: string; balance: number } | null>(null);
 
   const [newUser, setNewUser] = useState({ email: "", password: "", name: "", phone: "" });
   const [balanceForm, setBalanceForm] = useState({ balance: 0 });
+  const [mpesaForm, setMpesaForm] = useState({ mpesaBalance: 0 });
   const [winRateForm, setWinRateForm] = useState({ winRate: "" });
   const [actionMsg, setActionMsg] = useState("");
 
@@ -137,16 +139,16 @@ export default function AdminUsersPage() {
     }
   };
 
-  const handleResetBalance = async () => {
-    if (!showConfirmReset) return;
-    const res = await fetch(`/api/admin/users/${showConfirmReset.id}`, {
+  const handleUpdateMpesa = async () => {
+    if (!showMpesa) return;
+    const res = await fetch(`/api/admin/users/${showMpesa.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ balance: 0 }),
+      body: JSON.stringify({ mpesaBalance: mpesaForm.mpesaBalance }),
     });
     if (res.ok) {
-      setShowConfirmReset(null);
-      showMsg("M-Pesa balance reset to $0.00");
+      setShowMpesa(null);
+      showMsg(`M-Pesa balance set to Ksh${mpesaForm.mpesaBalance.toLocaleString("en-US")}`);
       fetchUsers(page, query);
     }
   };
@@ -226,6 +228,7 @@ export default function AdminUsersPage() {
                     </td>
                     <td className="px-4 py-3.5">
                       <span className="text-sm font-bold text-white">${u.balance.toFixed(2)}</span>
+                      <p className="text-[11px] text-gray-500 tabular-nums">Ksh {Math.round(u.mpesaBalance).toLocaleString("en-US")}</p>
                     </td>
                     <td className="px-4 py-3.5">
                       <span className="text-sm text-gray-400">{u._count.trades}</span>
@@ -262,7 +265,7 @@ export default function AdminUsersPage() {
                           title={u.autoApprove ? "Disable auto-approve" : "Enable auto-approve"}>
                           <Zap className="w-4 h-4" />
                         </button>
-                        <button onClick={() => setShowConfirmReset({ id: u.id, name: u.name || u.email, balance: u.balance })}
+                        <button onClick={() => { setShowMpesa({ id: u.id, name: u.name || u.email, mpesaBalance: u.mpesaBalance }); setMpesaForm({ mpesaBalance: u.mpesaBalance }); }}
                           className="p-2 rounded-lg hover:bg-white/5 text-gray-400 hover:text-sky-400" title="Reset M-Pesa balance">
                           <RotateCcw className="w-4 h-4" />
                         </button>
@@ -358,17 +361,31 @@ export default function AdminUsersPage() {
         </div>
       )}
 
-      {/* ── Confirm M-Pesa Balance Reset ── */}
-      {showConfirmReset && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={() => setShowConfirmReset(null)}>
+      {/* ── M-Pesa Balance Modal ── */}
+      {showMpesa && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={() => setShowMpesa(null)}>
           <div className="bg-[#0d0f17] border border-white/[0.07] rounded-2xl p-6 w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-base font-bold text-white mb-2">Reset M-Pesa Balance</h2>
-            <p className="text-sm text-gray-400 mb-1">Reset <strong className="text-white">{showConfirmReset.name}</strong>&apos;s balance to $0.00?</p>
-            <p className="text-xs text-gray-500 mb-5">Current balance: <strong className="text-white">${showConfirmReset.balance.toFixed(2)}</strong> — this cannot be undone.</p>
-            <div className="flex gap-3">
-              <button onClick={() => setShowConfirmReset(null)} className="flex-1 h-11 rounded-xl border border-white/[0.08] text-sm font-semibold text-gray-400 hover:bg-white/5 transition">Cancel</button>
-              <button onClick={handleResetBalance} className="flex-1 h-11 rounded-xl bg-sky-500 text-white text-sm font-bold transition">Reset to $0.00</button>
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-base font-bold text-white flex items-center gap-2"><RotateCcw className="w-4 h-4" /> Reset M-Pesa Balance</h2>
+              <button onClick={() => setShowMpesa(null)} className="p-1 rounded-lg hover:bg-white/5"><X className="w-4 h-4" /></button>
             </div>
+            <p className="text-xs text-gray-500 mb-4">{showMpesa.name} · Current: Ksh {Math.round(showMpesa.mpesaBalance).toLocaleString("en-US")}</p>
+            <form onSubmit={(e) => { e.preventDefault(); handleUpdateMpesa(); }} className="space-y-3">
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                value={mpesaForm.mpesaBalance}
+                onChange={(e) => setMpesaForm({ mpesaBalance: parseFloat(e.target.value) || 0 })}
+                placeholder="New M-Pesa balance (KES)"
+                className="w-full bg-[#141822] border border-white/[0.08] rounded-xl px-3.5 py-2.5 text-sm text-white tabular-nums outline-none focus:border-[#833ab4]/50"
+              />
+              <p className="text-xs text-gray-500">Withdrawal receipts add to this wallet. Enter 0 to fully reset it.</p>
+              <div className="flex gap-3">
+                <button type="button" onClick={() => setMpesaForm({ mpesaBalance: 0 })} className="flex-1 h-11 rounded-xl border border-white/[0.08] text-sm font-semibold text-gray-400 hover:bg-white/5 transition">Zero</button>
+                <button type="submit" className="flex-1 h-11 rounded-xl bg-sky-500 text-white text-sm font-bold transition">Save</button>
+              </div>
+            </form>
           </div>
         </div>
       )}

@@ -18,6 +18,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const updateData: Prisma.UserUpdateInput = {};
 
   if (typeof body.balance === "number") updateData.balance = body.balance;
+  if (typeof body.mpesaBalance === "number") updateData.mpesaBalance = body.mpesaBalance;
   if (typeof body.demoBalance === "number") updateData.demoBalance = body.demoBalance;
   if (typeof body.suspended === "boolean") updateData.suspended = body.suspended;
   if (typeof body.autoApprove === "boolean") updateData.autoApprove = body.autoApprove;
@@ -28,7 +29,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const updated = await prisma.user.update({
     where: { id },
     data: updateData,
-    select: { id: true, email: true, name: true, phone: true, balance: true, demoBalance: true, role: true, suspended: true, autoApprove: true, winRate: true, createdAt: true },
+    select: { id: true, email: true, name: true, phone: true, balance: true, mpesaBalance: true, demoBalance: true, role: true, suspended: true, autoApprove: true, winRate: true, createdAt: true },
   });
 
   return NextResponse.json({ user: updated });

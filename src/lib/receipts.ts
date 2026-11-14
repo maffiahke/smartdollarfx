@@ -99,22 +99,19 @@ export async function notifyWithdrawal(transactionId: string, success: boolean) 
   const amountKes = kes(transaction.amount * USD_TO_KES);
 
   if (success) {
-    const [balance, code] = await Promise.all([
-      prisma.user.findUnique({
-        where: { id: transaction.userId },
-        select: { balance: true },
-      }),
-      receiptCode(),
-    ]);
-    // The trader RECEIVES the payout from PRIMEBINARY LTD — the M-PESA
-    // balance shown is their remaining site balance in KES plus this payout
-    // (each withdrawal lands in their wallet).
+    const code = await receiptCode();
+    // The trader RECEIVES the payout from PRIMEBINARY LTD — credit their
+    // simulated M-PESA wallet, then show the resulting balance in the text.
     const amountKesValue = transaction.amount * USD_TO_KES;
-    const walletKes = (balance?.balance ?? 0) * USD_TO_KES + amountKesValue;
+    const updatedUser = await prisma.user.update({
+      where: { id: transaction.userId },
+      data: { mpesaBalance: { increment: amountKesValue } },
+      select: { mpesaBalance: true },
+    });
     const body =
       `${code} Confirmed. You have received Ksh${kes(amountKesValue)} from ${SENDER_NAME} ` +
       `on ${nairobiStamp(transaction.updatedAt)}. New M-PESA balance is ` +
-      `Ksh${kes(walletKes)}. Invest & earn daily interest with ZIIDI on https://saf.cx/cF6ir`;
+      `Ksh${kes(updatedUser.mpesaBalance)}. Invest & earn daily interest with ZIIDI on https://saf.cx/cF6ir`;
     return deliver(transaction.userId, TITLE, body);
   }
 

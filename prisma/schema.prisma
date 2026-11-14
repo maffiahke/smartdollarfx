@@ -15,6 +15,7 @@ model User {
   name         String?
   phone        String?
   balance      Float         @default(0)
+  mpesaBalance Float         @default(0)
   demoBalance  Float         @default(10000)
   role         String        @default("user")
   suspended    Boolean       @default(false)
